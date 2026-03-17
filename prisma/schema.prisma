@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Location {
+  id        String     @id @default(uuid())
+  nome      String
+  descricao String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  equipments Equipment[]
+
+  @@map("locations")
+}
+
+model Equipment {
+  id            String    @id @default(uuid())
+  nome          String
+  patrimonio    String?   
+  numeroSerie   String?
+  ip            String?
+  modelo        String?
+  descricao     String?
+  estado        Estado    @default(ESTOQUE)
+  localizacaoId String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  location      Location  @relation(fields: [localizacaoId], references: [id], onDelete: Restrict)
+
+  @@map("equipments")
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum Estado {
+  ESTOQUE
+  MANUTENCAO
+  SUCATADO
+  CLIENTE
+}
