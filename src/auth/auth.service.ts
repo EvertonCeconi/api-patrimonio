@@ -3,13 +3,17 @@ import {
   ConflictException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { SignInDto, SignUpDto } from './dtos/auth';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private jwtService: JwtService,
+  ) {}
 
   async signUp(data: SignUpDto) {
     const userExists = await this.prismaService.user.findUnique({
@@ -60,10 +64,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    const payload = { sub: user.id, email: user.email };
+
     return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
+      access_token: await this.jwtService.signAsync(payload),
     };
   }
 }
