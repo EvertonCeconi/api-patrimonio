@@ -1,5 +1,10 @@
-// src/auth/dtos/auth.ts
-import { IsEmail, IsString, MinLength, MaxLength } from 'class-validator';
+import {
+  IsEmail,
+  IsString,
+  MinLength,
+  MaxLength,
+  IsNotEmpty,
+} from 'class-validator';
 
 export class SignUpDto {
   @IsString()
@@ -18,10 +23,12 @@ export class SignUpDto {
 
 export class SignInDto {
   @IsEmail()
+  @IsNotEmpty()
   email: string;
 
   @IsString()
   @MinLength(8)
   @MaxLength(72)
+  @IsNotEmpty()
   password: string;
 }
