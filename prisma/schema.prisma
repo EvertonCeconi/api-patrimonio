@@ -7,43 +7,55 @@ datasource db {
 }
 
 model User {
-  id String @id @default(uuid())
-  name String
-  email String @unique
-  passwordHash String
-  role Role @default(USER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  role          Role           @default(USER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  name          String
+  refreshTokens RefreshToken[]
 
   @@map("users")
 }
 
 model Location {
-  id        String     @id @default(uuid())
-  nome      String
-  descricao String?
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id         String      @id @default(uuid())
+  nome       String
+  descricao  String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
   equipments Equipment[]
 
   @@map("locations")
 }
 
 model Equipment {
-  id            String    @id @default(uuid())
+  id            String   @id @default(uuid())
   nome          String
-  patrimonio    String?   
+  patrimonio    String?
   numeroSerie   String?
   ip            String?
   modelo        String?
   descricao     String?
-  estado        Estado    @default(ESTOQUE)
+  estado        Estado   @default(ESTOQUE)
   localizacaoId String
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  location      Location  @relation(fields: [localizacaoId], references: [id], onDelete: Restrict)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  location      Location @relation(fields: [localizacaoId], references: [id])
 
   @@map("equipments")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
 }
 
 enum Role {
