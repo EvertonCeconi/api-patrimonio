@@ -1,16 +1,19 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import cookieParser from 'cookie-parser';
 import 'dotenv/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.use(cookieParser());
+
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // remove campos não declarados no DTO
-      forbidNonWhitelisted: true, // retorna erro se vier campo desconhecido
-      transform: true, // converte tipos automaticamente
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
     }),
   );
 
