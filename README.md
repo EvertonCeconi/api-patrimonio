@@ -57,6 +57,43 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+### Padrão de nomenclatura de branches
+Prefixos das branches:
+- `feat/...`: para "features", ou seja, funcionalides novas;
+- `fix/...`: para "fixes", ou seja, correções.
+
+### Comandos GIT
+
+#### Criar uma branch nova (-b)
+```shell
+git checkout -b feat/make-header-component
+```
+
+#### Acessando outras branches
+```shell
+git checkout {nome_da_branch}
+```
+
+#### Prerando envio de TODAS as alterações para a branch
+```shell
+git add .
+```
+
+#### Publicando o envio das alterações para a branch
+```shell
+git commit -m "feat: update readme"
+```
+
+#### Enviando as alterações para a branch remota
+```shell
+git push
+```
+
+#### Atualizando a branch localmente
+```shell
+git pull
+```
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
