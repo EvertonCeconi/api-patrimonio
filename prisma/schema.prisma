@@ -14,20 +14,10 @@ model User {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   name          String
+  isActive      Boolean        @default(false)
   refreshTokens RefreshToken[]
 
   @@map("users")
-}
-
-model Location {
-  id         String      @id @default(uuid())
-  nome       String
-  descricao  String?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  equipments Equipment[]
-
-  @@map("locations")
 }
 
 model Equipment {
@@ -39,10 +29,9 @@ model Equipment {
   modelo        String?
   descricao     String?
   estado        Estado   @default(ESTOQUE)
-  localizacaoId String
+  localizacao   String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  location      Location @relation(fields: [localizacaoId], references: [id])
 
   @@map("equipments")
 }
