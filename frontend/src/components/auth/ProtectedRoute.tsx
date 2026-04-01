@@ -8,7 +8,6 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ requiredRole }: ProtectedRouteProps) {
   const { accessToken, user, isReady } = useAuthStore();
 
-  // aguarda o refresh inicial antes de decidir redirecionar
   if (!isReady) return null;
 
   if (!accessToken) {

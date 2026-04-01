@@ -10,9 +10,9 @@ import type { Equipment, EquipmentFilters, EquipmentPayload, Estado } from '@/ty
 const ESTADOS_FILTER: { value: Estado | ''; label: string }[] = [
   { value: '',           label: 'Todos os estados' },
   { value: 'ESTOQUE',    label: 'Estoque' },
-  { value: 'EM_USO',     label: 'Em uso' },
+  { value: 'CLIENTE',     label: 'Cliente' },
   { value: 'MANUTENCAO', label: 'Manutenção' },
-  { value: 'DESCARTADO', label: 'Descartado' },
+  { value: 'RETIRADA_PECAS', label: 'Retirada de peças' },
 ];
 
 export function EquipmentsPage() {
@@ -39,8 +39,8 @@ export function EquipmentsPage() {
     setFilters((f) => ({ ...f, page: 1, search: search || undefined }));
   }
 
-  const handleFilterEstado = useCallback((estado: string) => {
-    setFilters((f) => ({ ...f, page: 1, estado: (estado as Estado) || undefined }));
+  const handleFilterEstado = useCallback((status: string) => {
+    setFilters((f) => ({ ...f, page: 1, status: (status as Estado) || undefined }));
   }, []);
 
   async function handleCreate(payload: EquipmentPayload) {
@@ -60,7 +60,7 @@ export function EquipmentsPage() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-5">
+    <div className="p-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -78,7 +78,7 @@ export function EquipmentsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3">
+      <div className="flex gap-3 my-3">
         <div className="flex-1 relative">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-600"
             fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -120,7 +120,7 @@ export function EquipmentsPage() {
               <tr className="border-b border-surface-100 bg-surface-50">
                 <th className="text-left px-4 py-3 font-medium text-surface-600">Nome</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-600">Modelo</th>
-                <th className="text-left px-4 py-3 font-medium text-surface-600">Patrimônio</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-600">IP</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-600">Localização</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-600">Estado</th>
                 <th className="px-4 py-3" />
@@ -129,14 +129,14 @@ export function EquipmentsPage() {
             <tbody className="divide-y divide-surface-100">
               {data?.data.map((eq) => (
                 <tr key={eq.id} className="hover:bg-surface-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-surface-900">{eq.nome}</td>
-                  <td className="px-4 py-3 text-surface-600">{eq.modelo}</td>
+                  <td className="px-4 py-3 font-medium text-surface-900">{eq.name}</td>
+                  <td className="px-4 py-3 text-surface-600">{eq.model}</td>
                   <td className="px-4 py-3 font-mono text-xs text-surface-600">
-                    {eq.patrimonio ?? '—'}
+                    {eq.ipAddress ?? '—'}
                   </td>
-                  <td className="px-4 py-3 text-surface-600">{eq.localizacao}</td>
+                  <td className="px-4 py-3 text-surface-600">{eq.location}</td>
                   <td className="px-4 py-3">
-                    <EstadoBadge estado={eq.estado} />
+                    <EstadoBadge status={eq.status} />
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
@@ -205,7 +205,7 @@ export function EquipmentsPage() {
         <div className="space-y-4">
           <p className="text-sm text-surface-600">
             Tem certeza que deseja excluir{' '}
-            <span className="font-medium text-surface-900">{deleteTarget?.nome}</span>?
+            <span className="font-medium text-surface-900">{deleteTarget?.name}</span>?
             Esta ação não pode ser desfeita.
           </p>
           <div className="flex gap-2">

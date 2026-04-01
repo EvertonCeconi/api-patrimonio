@@ -30,7 +30,7 @@ function Root() {
         </Route>
       </Route>
 
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/equipments" replace />} />
     </Routes>
   );
 }
