@@ -14,10 +14,20 @@ export declare class AuthService {
     signIn(data: SignInDto): Promise<{
         access_token: string;
         refresh_token: `${string}-${string}-${string}-${string}-${string}`;
+        user: {
+            id: string;
+            email: string;
+            role: import("@prisma/client").$Enums.Role;
+        };
     }>;
     signOut(token: string): Promise<void>;
     refreshToken(token: string): Promise<{
         access_token: string;
         refresh_token: `${string}-${string}-${string}-${string}-${string}`;
+        user: {
+            id: string;
+            email: string;
+            role: import("@prisma/client").$Enums.Role;
+        };
     }>;
 }

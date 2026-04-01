@@ -101,7 +101,7 @@ let AuthService = class AuthService {
         if (!passwordMatch) {
             throw new common_1.UnauthorizedException('Invalid credentials');
         }
-        const payload = { sub: user.id, email: user.email, role: user.role };
+        const payload = { sub: user.id, email: user.email };
         const accessToken = await this.jwtService.signAsync(payload);
         await this.prismaService.refreshToken.deleteMany({
             where: {
@@ -112,6 +112,11 @@ let AuthService = class AuthService {
         return {
             access_token: accessToken,
             refresh_token: refreshToken,
+            user: {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+            },
         };
     }
     async signOut(token) {
@@ -139,11 +144,7 @@ let AuthService = class AuthService {
         if (!user) {
             throw new common_1.UnauthorizedException('Usuário não encontrado');
         }
-        const payload = {
-            sub: user.id,
-            email: user.email,
-            role: user.role,
-        };
+        const payload = { sub: user.id, email: user.email };
         const accessToken = await this.jwtService.signAsync(payload);
         await this.prismaService.refreshToken.delete({
             where: { token },
@@ -152,6 +153,11 @@ let AuthService = class AuthService {
         return {
             access_token: accessToken,
             refresh_token: newRefreshToken,
+            user: {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+            },
         };
     }
 };

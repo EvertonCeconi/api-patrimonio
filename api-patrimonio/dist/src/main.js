@@ -17,11 +17,31 @@ async function bootstrap() {
         whitelist: true,
         forbidNonWhitelisted: true,
         transform: true,
+        exceptionFactory: (errors) => {
+            const formatted = errors.flatMap((err) => {
+                const constraints = err.constraints ?? {};
+                return Object.keys(constraints).map((key) => ({
+                    field: err.property,
+                    code: mapConstraintToCode(key),
+                }));
+            });
+            return new common_1.BadRequestException({
+                errors: formatted,
+            });
+        },
     }));
     await app.listen(process.env.PORT ?? 3000);
 }
-bootstrap().catch((err) => {
-    console.error('Application failed to start', err);
+bootstrap().catch(() => {
     process.exit(1);
 });
+function mapConstraintToCode(constraint) {
+    const map = {
+        isIP: 'INVALID_IP',
+        isNotEmpty: 'REQUIRED',
+        isString: 'INVALID_TYPE',
+        isEnum: 'INVALID_ENUM',
+    };
+    return map[constraint] || 'INVALID_FIELD';
+}
 //# sourceMappingURL=main.js.map

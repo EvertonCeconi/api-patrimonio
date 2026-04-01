@@ -43,19 +43,19 @@ let EquipmentsService = class EquipmentsService {
         return equipment;
     }
     async findAll(query) {
-        const { page, limit, search, estado } = query;
+        const { page, limit, search, status } = query;
         const skip = (page - 1) * limit;
         const where = {
-            ...(estado && { estado }),
+            ...(status && { status }),
             ...(search && {
                 OR: [
-                    { nome: { contains: search, mode: 'insensitive' } },
-                    { modelo: { contains: search, mode: 'insensitive' } },
-                    { patrimonio: { contains: search, mode: 'insensitive' } },
-                    { numeroSerie: { contains: search, mode: 'insensitive' } },
-                    { ip: { contains: search, mode: 'insensitive' } },
-                    { descricao: { contains: search, mode: 'insensitive' } },
-                    { localizacao: { contains: search, mode: 'insensitive' } },
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { model: { contains: search, mode: 'insensitive' } },
+                    { assetTag: { contains: search, mode: 'insensitive' } },
+                    { serialNumber: { contains: search, mode: 'insensitive' } },
+                    { ipAddress: { contains: search, mode: 'insensitive' } },
+                    { description: { contains: search, mode: 'insensitive' } },
+                    { location: { contains: search, mode: 'insensitive' } },
                 ],
             }),
         };

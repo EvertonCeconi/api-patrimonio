@@ -17,7 +17,7 @@ class PaginationDto {
     page = 1;
     limit = 10;
     search;
-    estado;
+    status;
 }
 exports.PaginationDto = PaginationDto;
 __decorate([
@@ -44,5 +44,5 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEnum)(client_1.Estado),
     __metadata("design:type", String)
-], PaginationDto.prototype, "estado", void 0);
+], PaginationDto.prototype, "status", void 0);
 //# sourceMappingURL=pagination.dto.js.map

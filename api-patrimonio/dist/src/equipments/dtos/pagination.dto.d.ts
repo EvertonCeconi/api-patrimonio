@@ -3,5 +3,5 @@ export declare class PaginationDto {
     page: number;
     limit: number;
     search?: string;
-    estado?: Estado;
+    status?: Estado;
 }

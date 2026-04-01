@@ -78,7 +78,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const payload = { sub: user.id, email: user.email };
 
     const accessToken = await this.jwtService.signAsync(payload);
 
@@ -93,6 +93,11 @@ export class AuthService {
     return {
       access_token: accessToken,
       refresh_token: refreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
     };
   }
 
@@ -126,11 +131,7 @@ export class AuthService {
       throw new UnauthorizedException('Usuário não encontrado');
     }
 
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    };
+    const payload = { sub: user.id, email: user.email };
 
     const accessToken = await this.jwtService.signAsync(payload);
 
@@ -143,6 +144,11 @@ export class AuthService {
     return {
       access_token: accessToken,
       refresh_token: newRefreshToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
     };
   }
 }

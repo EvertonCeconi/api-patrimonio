@@ -11,6 +11,11 @@ export declare class AuthController {
     }>;
     signIn(body: SignInDto, res: Response): Promise<{
         access_token: string;
+        user: {
+            id: string;
+            email: string;
+            role: import("@prisma/client").$Enums.Role;
+        };
     }>;
     logout(req: Request, res: Response): Promise<{
         message: string;

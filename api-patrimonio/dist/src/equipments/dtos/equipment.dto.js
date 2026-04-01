@@ -13,54 +13,54 @@ exports.EquipmentDto = void 0;
 const client_1 = require("@prisma/client");
 const class_validator_1 = require("class-validator");
 class EquipmentDto {
-    nome;
-    patrimonio;
-    numeroSerie;
-    ip;
-    modelo;
-    descricao;
-    estado;
-    localizacao;
+    name;
+    assetTag;
+    serialNumber;
+    ipAddress;
+    model;
+    description;
+    status;
+    location;
 }
 exports.EquipmentDto = EquipmentDto;
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], EquipmentDto.prototype, "nome", void 0);
+], EquipmentDto.prototype, "name", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], EquipmentDto.prototype, "patrimonio", void 0);
+], EquipmentDto.prototype, "assetTag", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], EquipmentDto.prototype, "numeroSerie", void 0);
+], EquipmentDto.prototype, "serialNumber", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsIP)(),
     __metadata("design:type", String)
-], EquipmentDto.prototype, "ip", void 0);
+], EquipmentDto.prototype, "ipAddress", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], EquipmentDto.prototype, "modelo", void 0);
+], EquipmentDto.prototype, "model", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], EquipmentDto.prototype, "descricao", void 0);
+], EquipmentDto.prototype, "description", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsEnum)(client_1.Estado),
     __metadata("design:type", String)
-], EquipmentDto.prototype, "estado", void 0);
+], EquipmentDto.prototype, "status", void 0);
 __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
-], EquipmentDto.prototype, "localizacao", void 0);
+], EquipmentDto.prototype, "location", void 0);
 //# sourceMappingURL=equipment.dto.js.map
