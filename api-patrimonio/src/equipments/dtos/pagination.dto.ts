@@ -22,5 +22,5 @@ export class PaginationDto {
 
   @IsOptional()
   @IsEnum(Estado)
-  estado?: Estado;
+  status?: Estado;
 }

@@ -26,8 +26,8 @@ export function Modal({ open, onClose, title, children, width = 'max-w-lg' }: Mo
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm"
       onClick={(e) => e.target === overlayRef.current && onClose()}
     >
-      <div className={`card w-full ${width} shadow-xl`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-surface-100">
+      <div className={`card w-full ${width} shadow-xl max-h-[90vh] flex flex-col`}>
+        <div className="flex items-center justify-between px-6 py-3 border-b border-surface-100">
           <h2 className="text-base font-semibold text-surface-900">{title}</h2>
           <button onClick={onClose} className="btn-ghost p-1.5 -mr-1.5">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -35,7 +35,7 @@ export function Modal({ open, onClose, title, children, width = 'max-w-lg' }: Mo
             </svg>
           </button>
         </div>
-        <div className="p-6">{children}</div>
+        <div className="p-6 overflow-y-auto">{children}</div>
       </div>
     </div>
   );

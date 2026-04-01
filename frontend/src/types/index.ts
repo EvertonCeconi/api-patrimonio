@@ -30,33 +30,33 @@ export interface User {
 
 export type Estado =
   | 'ESTOQUE'
-  | 'EM_USO'
+  | 'CLIENTE'
   | 'MANUTENCAO'
-  | 'DESCARTADO';
+  | 'RETIRADA_PECAS';
 
 export interface Equipment {
   id: string;
-  nome: string;
-  localizacao: string;
-  modelo: string;
-  patrimonio?: string;
-  numeroSerie?: string;
-  ip?: string;
-  descricao?: string;
-  estado: Estado;
+  name: string;
+  location: string;
+  model: string;
+  assetTag?: string;
+  serialNumber?: string;
+  ipAddress?: string;
+  description?: string;
+  status: Estado;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface EquipmentPayload {
-  nome: string;
-  localizacao: string;
-  modelo: string;
-  patrimonio?: string;
-  numeroSerie?: string;
-  ip?: string;
-  descricao?: string;
-  estado?: Estado;
+  name: string;
+  location: string;
+  model: string;
+  assetTag?: string;
+  serialNumber?: string;
+  ipAddress?: string;
+  description?: string;
+  status?: Estado;
 }
 
 // ─── Pagination ───────────────────────────────────────────────────────────────
@@ -80,5 +80,14 @@ export interface EquipmentFilters {
   page?: number;
   limit?: number;
   search?: string;
-  estado?: Estado;
+  status?: Estado;
+}
+
+export interface ApiError {
+  field: string;
+  code: string;
+}
+
+export interface ApiErrorResponse {
+  errors: ApiError[];
 }

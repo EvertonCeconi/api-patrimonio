@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import type { Equipment, EquipmentPayload, Estado } from '@/types';
+import type { ApiErrorResponse, Equipment, EquipmentPayload, Estado } from '@/types';
+import axios from 'axios';
 
 const ESTADOS: { value: Estado; label: string }[] = [
   { value: 'ESTOQUE',    label: 'Estoque' },
-  { value: 'EM_USO',     label: 'Em uso' },
+  { value: 'CLIENTE',     label: 'Cliente' },
   { value: 'MANUTENCAO', label: 'Manutenção' },
-  { value: 'DESCARTADO', label: 'Descartado' },
+  { value: 'RETIRADA_PECAS', label: 'Retirada de peças' },
 ];
 
 interface EquipmentFormProps {
@@ -15,16 +16,36 @@ interface EquipmentFormProps {
   loading?: boolean;
 }
 
+function translateError(error: { field: string; code: string }) {
+  const map: Record<string, string> = {
+    INVALID_FIELD: 'Campo inválido',
+    REQUIRED: 'Campo obrigatório',
+    INVALID_ENUM: 'Valor inválido',
+  };
+
+  const fieldMap: Record<string, string> = {
+    ipAddress: 'IP',
+    name: 'Nome',
+    model: 'Modelo',
+    location: 'Localização',
+  };
+
+  const field = fieldMap[error.field] ?? error.field;
+  const message = map[error.code] ?? error.code;
+
+  return `${field}: ${message}`;
+}
+
 export function EquipmentForm({ initial, onSubmit, onCancel, loading }: EquipmentFormProps) {
   const [form, setForm] = useState<EquipmentPayload>({
-    nome:        initial?.nome        ?? '',
-    localizacao: initial?.localizacao ?? '',
-    modelo:      initial?.modelo      ?? '',
-    patrimonio:  initial?.patrimonio  ?? '',
-    numeroSerie: initial?.numeroSerie ?? '',
-    ip:          initial?.ip          ?? '',
-    descricao:   initial?.descricao   ?? '',
-    estado:      initial?.estado      ?? 'ESTOQUE',
+    name:initial?.name ?? '',
+    location:initial?.location ?? '',
+    model:initial?.model ?? '',
+    assetTag:initial?.assetTag ?? '',
+    serialNumber:initial?.serialNumber ?? '',
+    ipAddress:initial?.ipAddress ?? '',
+    description:initial?.description ?? '',
+    status:initial?.status ?? 'ESTOQUE',
   });
 
   const [error, setError] = useState('');
@@ -37,82 +58,99 @@ export function EquipmentForm({ initial, onSubmit, onCancel, loading }: Equipmen
     e.preventDefault();
     setError('');
 
-    // remove campos opcionais vazios antes de enviar
     const payload = Object.fromEntries(
-      Object.entries(form).filter(([, v]) => v !== ''),
+      Object.entries(form).map(([k, v]) => [k, v === '' ? null : v])
     ) as EquipmentPayload;
 
     try {
       await onSubmit(payload);
-    } catch (err: unknown) {
-      const status = (err as { response?: { status?: number } })?.response?.status;
-      if (status === 409) setError('Patrimônio já cadastrado.');
-      else if (status === 400) setError('Verifique os campos e tente novamente.');
-      else setError('Erro ao salvar equipamento.');
+    }catch (err: unknown) {
+      if (axios.isAxiosError<ApiErrorResponse>(err)) {
+        const status = err.response?.status;
+        const data = err.response?.data;
+
+        if (status === 409) {
+          setError('Patrimônio já cadastrado.');
+          return;
+        }
+
+        if (status === 400 && data?.errors) {
+          const messages = data.errors.map((e) => translateError(e));
+          setError(messages.join(', '));
+          return;
+        }
+      }
+
+      setError('Erro ao salvar equipamento.');
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+    <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-3">
+      
+      <div className="grid gap-2">
         <div className="col-span-2">
           <label className="label">Nome *</label>
-          <input className="input" value={form.nome}
-            onChange={(e) => set('nome', e.target.value)} required placeholder="Ex: Notebook Dell" />
+          <input className="input" value={form.name}
+            onChange={(e) => set('name', e.target.value)} required placeholder="Ex: Impressora HP" />
         </div>
 
-        <div>
+        <div className="col-span-2">
+          <label className="label">Número de série</label>
+          <input className="input" value={form.serialNumber}
+            onChange={(e) => set('serialNumber', e.target.value)} placeholder="Ex: 948347" />
+        </div>
+
+        <div className="col-span-2">
+          <label className="label">Patrimônio</label>
+          <input className="input" value={form.assetTag}
+            onChange={(e) => set('assetTag', e.target.value)} placeholder="Ex: PAT-001" />
+        </div>        
+
+      </div>
+      <div className="grid gap-2">
+
+        <div className="col-span-2">
           <label className="label">Modelo *</label>
-          <input className="input" value={form.modelo}
-            onChange={(e) => set('modelo', e.target.value)} required placeholder="Ex: Latitude 5420" />
+          <input className="input" value={form.model}
+            onChange={(e) => set('model', e.target.value)} required placeholder="Ex: 3710SF" />
         </div>
 
-        <div>
+        <div className="col-span-2">
+          <label className="label">Localização *</label>
+          <input className="input" value={form.location}
+            onChange={(e) => set('location', e.target.value)} required placeholder="Ex: Matriz" />
+        </div>
+
+        <div className="col-span-1">
+          <label className="label">IP *</label>
+          <input className="input" value={form.ipAddress}
+            onChange={(e) => set('ipAddress', e.target.value)} required placeholder="Ex: 192.168.0.1" />
+        </div>
+
+        <div className="col-span-1">
           <label className="label">Estado</label>
-          <select className="input" value={form.estado}
-            onChange={(e) => set('estado', e.target.value as Estado)}>
+          <select className="input" value={form.status}
+            onChange={(e) => set('status', e.target.value as Estado)}>
             {ESTADOS.map((s) => (
               <option key={s.value} value={s.value}>{s.label}</option>
             ))}
           </select>
         </div>
 
-        <div className="col-span-2">
-          <label className="label">Localização *</label>
-          <input className="input" value={form.localizacao}
-            onChange={(e) => set('localizacao', e.target.value)} required placeholder="Ex: Sala 301" />
-        </div>
+      </div>
 
-        <div>
-          <label className="label">Patrimônio</label>
-          <input className="input" value={form.patrimonio}
-            onChange={(e) => set('patrimonio', e.target.value)} placeholder="Ex: PAT-001" />
-        </div>
-
-        <div>
-          <label className="label">Número de série</label>
-          <input className="input" value={form.numeroSerie}
-            onChange={(e) => set('numeroSerie', e.target.value)} placeholder="Ex: SN-12345" />
-        </div>
-
-        <div>
-          <label className="label">IP</label>
-          <input className="input" value={form.ip}
-            onChange={(e) => set('ip', e.target.value)} placeholder="Ex: 192.168.0.1" />
-        </div>
-
-        <div className="col-span-2">
-          <label className="label">Descrição</label>
-          <textarea className="input resize-none" rows={2} value={form.descricao}
-            onChange={(e) => set('descricao', e.target.value)} placeholder="Observações..." />
-        </div>
+      <div className="col-span-2">
+        <label className="label">Descrição</label>
+        <textarea className="input resize-none text-base" rows={4} value={form.description}
+          onChange={(e) => set('description', e.target.value)} placeholder="Descrição..." />
       </div>
 
       {error && (
         <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
       )}
 
-      <div className="flex gap-2 pt-1">
+      <div className="flex gap-2 pt-1 space-between col-span-2">
         <button type="button" onClick={onCancel} className="btn-secondary flex-1">
           Cancelar
         </button>
