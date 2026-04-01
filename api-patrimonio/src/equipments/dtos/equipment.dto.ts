@@ -10,33 +10,33 @@ import {
 export class EquipmentDto {
   @IsNotEmpty()
   @IsString()
-  nome: string;
+  name: string;
 
   @IsOptional()
   @IsString()
-  patrimonio?: string;
+  assetTag?: string;
 
   @IsOptional()
   @IsString()
-  numeroSerie?: string;
+  serialNumber?: string;
 
   @IsOptional()
   @IsIP()
-  ip?: string;
+  ipAddress?: string;
 
   @IsNotEmpty()
   @IsString()
-  modelo?: string;
+  model?: string;
 
   @IsOptional()
   @IsString()
-  descricao?: string;
+  description?: string;
 
   @IsOptional()
   @IsEnum(Estado)
-  estado?: Estado;
+  status?: Estado;
 
   @IsNotEmpty()
   @IsString()
-  localizacao: string;
+  location: string;
 }
