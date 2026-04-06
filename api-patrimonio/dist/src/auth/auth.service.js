@@ -101,6 +101,9 @@ let AuthService = class AuthService {
         if (!passwordMatch) {
             throw new common_1.UnauthorizedException('Invalid credentials');
         }
+        if (!user.isActive) {
+            throw new common_1.ForbiddenException('Sua conta ainda não foi ativada. Aguardando ativação do Admin.');
+        }
         const payload = { sub: user.id, email: user.email };
         const accessToken = await this.jwtService.signAsync(payload);
         await this.prismaService.refreshToken.deleteMany({

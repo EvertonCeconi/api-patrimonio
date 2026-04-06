@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
@@ -76,6 +77,12 @@ export class AuthService {
 
     if (!passwordMatch) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (!user.isActive) {
+      throw new ForbiddenException(
+        'Sua conta ainda não foi ativada. Aguardando ativação do Admin.',
+      );
     }
 
     const payload = { sub: user.id, email: user.email };

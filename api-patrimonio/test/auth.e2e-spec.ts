@@ -46,6 +46,15 @@ describe('Auth (e2e)', () => {
     await prisma.user.deleteMany();
   });
 
+  // Helper: cria usuário já ativo
+  async function createActiveUser(data = user) {
+    await request(app.getHttpServer()).post('/auth/signup').send(data);
+    await prisma.user.update({
+      where: { email: data.email },
+      data: { isActive: true },
+    });
+  }
+
   afterAll(async () => {
     await prisma.refreshToken.deleteMany();
     await prisma.user.deleteMany();
@@ -82,7 +91,7 @@ describe('Auth (e2e)', () => {
   // =========================
 
   it('✅ deve fazer login com sucesso', async () => {
-    await request(app.getHttpServer()).post('/auth/signup').send(user);
+    await createActiveUser();
 
     const response = await request(app.getHttpServer())
       .post('/auth/signin')
@@ -93,7 +102,7 @@ describe('Auth (e2e)', () => {
   });
 
   it('❌ deve falhar com senha errada', async () => {
-    await request(app.getHttpServer()).post('/auth/signup').send(user);
+    await createActiveUser();
 
     await request(app.getHttpServer())
       .post('/auth/signin')
@@ -122,12 +131,50 @@ describe('Auth (e2e)', () => {
       .expect(400);
   });
 
+  it('❌ deve bloquear login de usuário inativo com 403', async () => {
+    await request(app.getHttpServer()).post('/auth/signup').send(user);
+    // usuário criado com isActive=false por padrão
+
+    await request(app.getHttpServer())
+      .post('/auth/signin')
+      .send({ email: user.email, password: user.password })
+      .expect(403);
+  });
+
+  it('✅ deve permitir login após ativação pelo admin', async () => {
+    await request(app.getHttpServer()).post('/auth/signup').send(user);
+
+    const prisma = app.get(PrismaService);
+    await prisma.user.update({
+      where: { email: user.email },
+      data: { isActive: true },
+    });
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/signin')
+      .send({ email: user.email, password: user.password })
+      .expect(201);
+
+    expect(response.body).toHaveProperty('access_token');
+  });
+
+  it('✅ mensagem de erro deve indicar aguardando ativação', async () => {
+    await request(app.getHttpServer()).post('/auth/signup').send(user);
+
+    const response = await request(app.getHttpServer())
+      .post('/auth/signin')
+      .send({ email: user.email, password: user.password })
+      .expect(403);
+
+    expect(response.body.message).toMatch(/aguardando ativação/i);
+  });
+
   // =========================
   // REFRESH TOKEN
   // =========================
 
   it('✅ deve retornar novo access_token com cookie válido', async () => {
-    await request(app.getHttpServer()).post('/auth/signup').send(user);
+    await createActiveUser();
 
     const signinRes = await request(app.getHttpServer())
       .post('/auth/signin')
@@ -148,7 +195,7 @@ describe('Auth (e2e)', () => {
   });
 
   it('✅ deve gerar novo refresh_token a cada refresh (rotation)', async () => {
-    await request(app.getHttpServer()).post('/auth/signup').send(user);
+    await createActiveUser();
 
     const signinRes = await request(app.getHttpServer())
       .post('/auth/signin')
@@ -178,7 +225,7 @@ describe('Auth (e2e)', () => {
   // =========================
 
   it('✅ deve fazer logout e invalidar o token', async () => {
-    await request(app.getHttpServer()).post('/auth/signup').send(user);
+    await createActiveUser();
 
     const signinRes = await request(app.getHttpServer())
       .post('/auth/signin')
