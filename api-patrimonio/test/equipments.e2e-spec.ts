@@ -26,10 +26,10 @@ describe('Equipments (e2e)', () => {
   };
 
   const equipmentPayload = {
-    nome: 'Notebook Dell',
-    localizacao: 'Estoque Principal',
-    patrimonio: 'PAT-001',
-    modelo: 'Latitude 5420',
+    name: 'Notebook Dell',
+    location: 'Estoque Principal',
+    assetTag: 'PAT-001',
+    model: 'Latitude 5420',
   };
 
   // ─────────────────────────────────────────────
@@ -105,8 +105,8 @@ describe('Equipments (e2e)', () => {
   async function createMany(count: number) {
     for (let i = 0; i < count; i++) {
       await createEquipment({
-        nome: `Equipamento ${i}`,
-        patrimonio: `PAT-BULK-${i}`,
+        name: `Equipamento ${i}`,
+        assetTag: `PAT-BULK-${i}`,
       });
     }
   }
@@ -165,11 +165,11 @@ describe('Equipments (e2e)', () => {
         .expect(201);
 
       expect(res.body).toMatchObject({
-        nome: equipmentPayload.nome,
-        localizacao: equipmentPayload.localizacao,
-        patrimonio: equipmentPayload.patrimonio,
-        modelo: equipmentPayload.modelo,
-        estado: 'ESTOQUE', // valor default do Prisma
+        name: equipmentPayload.name,
+        location: equipmentPayload.location,
+        assetTag: equipmentPayload.assetTag,
+        model: equipmentPayload.model,
+        status: 'ESTOQUE', // valor default do Prisma
       });
       expect(res.body.id).toBeDefined();
     });
@@ -180,54 +180,54 @@ describe('Equipments (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           ...equipmentPayload,
-          ip: '192.168.0.1',
-          numeroSerie: 'SN-12345',
-          descricao: 'Notebook para desenvolvimento',
-          estado: 'MANUTENCAO',
+          ipAddress: '192.168.0.1',
+          serialNumber: 'SN-12345',
+          description: 'Notebook para desenvolvimento',
+          status: 'MANUTENCAO',
         })
         .expect(201);
 
-      expect(res.body.ip).toBe('192.168.0.1');
-      expect(res.body.numeroSerie).toBe('SN-12345');
-      expect(res.body.descricao).toBe('Notebook para desenvolvimento');
-      expect(res.body.estado).toBe('MANUTENCAO');
+      expect(res.body.ipAddress).toBe('192.168.0.1');
+      expect(res.body.serialNumber).toBe('SN-12345');
+      expect(res.body.description).toBe('Notebook para desenvolvimento');
+      expect(res.body.status).toBe('MANUTENCAO');
     });
 
-    it('❌ deve falhar sem o campo "nome"', async () => {
-      const { nome, ...semNome } = equipmentPayload;
+    it('❌ deve falhar sem o campo "name"', async () => {
+      const { name, ...semName } = equipmentPayload;
 
       await request(app.getHttpServer())
         .post('/equipments')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send(semNome)
+        .send(semName)
         .expect(400);
     });
 
-    it('❌ deve falhar sem o campo "localizacao"', async () => {
-      const { localizacao, ...semLocalizacao } = equipmentPayload;
+    it('❌ deve falhar sem o campo "location"', async () => {
+      const { location, ...semLocation } = equipmentPayload;
 
       await request(app.getHttpServer())
         .post('/equipments')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send(semLocalizacao)
+        .send(semLocation)
         .expect(400);
     });
 
-    it('❌ deve falhar sem o campo "modelo"', async () => {
-      const { modelo, ...semModelo } = equipmentPayload;
+    it('❌ deve falhar sem o campo "model"', async () => {
+      const { model, ...semModel } = equipmentPayload;
 
       await request(app.getHttpServer())
         .post('/equipments')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send(semModelo)
+        .send(semModel)
         .expect(400);
     });
 
-    it('❌ deve rejeitar estado inválido', async () => {
+    it('❌ deve rejeitar status inválido', async () => {
       await request(app.getHttpServer())
         .post('/equipments')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ ...equipmentPayload, estado: 'INVALIDO' })
+        .send({ ...equipmentPayload, status: 'INVALIDO' })
         .expect(400);
     });
 
@@ -235,7 +235,7 @@ describe('Equipments (e2e)', () => {
       await request(app.getHttpServer())
         .post('/equipments')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ ...equipmentPayload, ip: '1211233213' })
+        .send({ ...equipmentPayload, ipAddress: '1211233213' })
         .expect(400);
     });
 
@@ -243,7 +243,7 @@ describe('Equipments (e2e)', () => {
       await request(app.getHttpServer())
         .post('/equipments')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ ...equipmentPayload, ip: '192.168.1' })
+        .send({ ...equipmentPayload, ipAddress: '192.168.1' })
         .expect(400);
     });
 
@@ -291,7 +291,7 @@ describe('Equipments (e2e)', () => {
 
     it('✅ deve listar múltiplos equipamentos', async () => {
       await createEquipment();
-      await createEquipment({ nome: 'Monitor LG', patrimonio: 'PAT-002' });
+      await createEquipment({ name: 'Monitor LG', assetTag: 'PAT-002' });
 
       const res = await request(app.getHttpServer())
         .get('/equipments')
@@ -303,23 +303,22 @@ describe('Equipments (e2e)', () => {
     });
 
     it('✅ deve retornar equipamentos ordenados por createdAt desc', async () => {
-      await createEquipment({ nome: 'Primeiro', patrimonio: 'PAT-A' });
-      await createEquipment({ nome: 'Segundo', patrimonio: 'PAT-B' });
+      await createEquipment({ name: 'Primeiro', assetTag: 'PAT-A' });
+      await createEquipment({ name: 'Segundo', assetTag: 'PAT-B' });
 
       const res = await request(app.getHttpServer())
         .get('/equipments')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
-      // o mais recente deve vir primeiro
-      expect(res.body.data[0].nome).toBe('Segundo');
-      expect(res.body.data[1].nome).toBe('Primeiro');
+      expect(res.body.data[0].name).toBe('Segundo');
+      expect(res.body.data[1].name).toBe('Primeiro');
     });
 
     describe('Filtros', () => {
-      it('✅ deve filtrar por search no campo nome', async () => {
+      it('✅ deve filtrar por search no campo name', async () => {
         await createEquipment();
-        await createEquipment({ nome: 'Monitor LG', patrimonio: 'PAT-002' });
+        await createEquipment({ name: 'Monitor LG', assetTag: 'PAT-002' });
 
         const res = await request(app.getHttpServer())
           .get('/equipments?search=Dell')
@@ -327,15 +326,15 @@ describe('Equipments (e2e)', () => {
           .expect(200);
 
         expect(res.body.data.length).toBe(1);
-        expect(res.body.data[0].nome).toBe('Notebook Dell');
+        expect(res.body.data[0].name).toBe('Notebook Dell');
       });
 
-      it('✅ deve filtrar por search no campo modelo', async () => {
-        await createEquipment(); // modelo: Latitude 5420
+      it('✅ deve filtrar por search no campo model', async () => {
+        await createEquipment(); // model: Latitude 5420
         await createEquipment({
-          nome: 'Monitor LG',
-          patrimonio: 'PAT-002',
-          modelo: 'UltraSharp',
+          name: 'Monitor LG',
+          assetTag: 'PAT-002',
+          model: 'UltraSharp',
         });
 
         const res = await request(app.getHttpServer())
@@ -344,12 +343,12 @@ describe('Equipments (e2e)', () => {
           .expect(200);
 
         expect(res.body.data.length).toBe(1);
-        expect(res.body.data[0].nome).toBe('Monitor LG');
+        expect(res.body.data[0].name).toBe('Monitor LG');
       });
 
-      it('✅ deve filtrar por search no campo patrimônio', async () => {
+      it('✅ deve filtrar por search no campo assetTag', async () => {
         await createEquipment(); // PAT-001
-        await createEquipment({ nome: 'Monitor LG', patrimonio: 'PAT-002' });
+        await createEquipment({ name: 'Monitor LG', assetTag: 'PAT-002' });
 
         const res = await request(app.getHttpServer())
           .get('/equipments?search=PAT-002')
@@ -357,11 +356,11 @@ describe('Equipments (e2e)', () => {
           .expect(200);
 
         expect(res.body.data.length).toBe(1);
-        expect(res.body.data[0].nome).toBe('Monitor LG');
+        expect(res.body.data[0].name).toBe('Monitor LG');
       });
 
       it('✅ search deve ser case-insensitive', async () => {
-        await createEquipment(); // nome: Notebook Dell
+        await createEquipment(); // name: Notebook Dell
 
         const res = await request(app.getHttpServer())
           .get('/equipments?search=notebook dell')
@@ -383,48 +382,48 @@ describe('Equipments (e2e)', () => {
         expect(res.body.message).toBe('No records found');
       });
 
-      it('✅ deve filtrar equipamentos por estado', async () => {
-        await createEquipment(); // estado: ESTOQUE (default)
+      it('✅ deve filtrar equipamentos por status', async () => {
+        await createEquipment(); // status: ESTOQUE (default)
         await createEquipment({
-          nome: 'Monitor LG',
-          patrimonio: 'PAT-002',
-          estado: 'MANUTENCAO',
+          name: 'Monitor LG',
+          assetTag: 'PAT-002',
+          status: 'MANUTENCAO',
         });
 
         const res = await request(app.getHttpServer())
-          .get('/equipments?estado=MANUTENCAO')
+          .get('/equipments?status=MANUTENCAO')
           .set('Authorization', `Bearer ${accessToken}`)
           .expect(200);
 
         expect(res.body.data.length).toBe(1);
-        expect(res.body.data[0].estado).toBe('MANUTENCAO');
+        expect(res.body.data[0].status).toBe('MANUTENCAO');
       });
 
-      it('✅ deve combinar filtros search e estado simultaneamente', async () => {
-        await createEquipment({ nome: 'Dell Estoque', patrimonio: 'PAT-A' });
+      it('✅ deve combinar filtros search e status simultaneamente', async () => {
+        await createEquipment({ name: 'Dell Estoque', assetTag: 'PAT-A' });
         await createEquipment({
-          nome: 'Dell Manutencao',
-          patrimonio: 'PAT-B',
-          estado: 'MANUTENCAO',
+          name: 'Dell Manutencao',
+          assetTag: 'PAT-B',
+          status: 'MANUTENCAO',
         });
         await createEquipment({
-          nome: 'LG Manutencao',
-          patrimonio: 'PAT-C',
-          estado: 'MANUTENCAO',
+          name: 'LG Manutencao',
+          assetTag: 'PAT-C',
+          status: 'MANUTENCAO',
         });
 
         const res = await request(app.getHttpServer())
-          .get('/equipments?search=Dell&estado=MANUTENCAO')
+          .get('/equipments?search=Dell&status=MANUTENCAO')
           .set('Authorization', `Bearer ${accessToken}`)
           .expect(200);
 
         expect(res.body.data.length).toBe(1);
-        expect(res.body.data[0].nome).toBe('Dell Manutencao');
+        expect(res.body.data[0].name).toBe('Dell Manutencao');
       });
 
-      it('❌ deve rejeitar estado inválido no filtro', async () => {
+      it('❌ deve rejeitar status inválido no filtro', async () => {
         await request(app.getHttpServer())
-          .get('/equipments?estado=INVALIDO')
+          .get('/equipments?status=INVALIDO')
           .set('Authorization', `Bearer ${accessToken}`)
           .expect(400);
       });
@@ -458,7 +457,7 @@ describe('Equipments (e2e)', () => {
       });
 
       it('✅ deve retornar última página com item restante', async () => {
-        await createMany(3); // 3 itens, limit=2 → página 2 tem só 1
+        await createMany(3);
 
         const res = await request(app.getHttpServer())
           .get('/equipments?page=2&limit=2')
@@ -494,7 +493,6 @@ describe('Equipments (e2e)', () => {
       });
 
       it('❌ deve rejeitar limit acima do máximo permitido (100)', async () => {
-        // PaginationDto valida @Max(100)
         await request(app.getHttpServer())
           .get('/equipments?limit=101')
           .set('Authorization', `Bearer ${accessToken}`)
@@ -502,7 +500,6 @@ describe('Equipments (e2e)', () => {
       });
 
       it('❌ deve rejeitar page menor que 1', async () => {
-        // PaginationDto valida @Min(1)
         await request(app.getHttpServer())
           .get('/equipments?page=0')
           .set('Authorization', `Bearer ${accessToken}`)
@@ -525,14 +522,13 @@ describe('Equipments (e2e)', () => {
         .expect(200);
 
       expect(res.body.id).toBe(created.id);
-      expect(res.body.nome).toBe(equipmentPayload.nome);
-      expect(res.body.localizacao).toBe(equipmentPayload.localizacao);
-      expect(res.body.patrimonio).toBe(equipmentPayload.patrimonio);
-      expect(res.body.modelo).toBe(equipmentPayload.modelo);
+      expect(res.body.name).toBe(equipmentPayload.name);
+      expect(res.body.location).toBe(equipmentPayload.location);
+      expect(res.body.assetTag).toBe(equipmentPayload.assetTag);
+      expect(res.body.model).toBe(equipmentPayload.model);
     });
 
     it('❌ deve retornar 404 para ID inexistente', async () => {
-      // PrismaExceptionFilter mapeia P2025 → 404
       const res = await request(app.getHttpServer())
         .get('/equipments/id-que-nao-existe')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -555,31 +551,31 @@ describe('Equipments (e2e)', () => {
   // ─────────────────────────────────────────────
 
   describe('PATCH /equipments/:id', () => {
-    it('✅ deve atualizar apenas o nome mantendo demais campos intactos', async () => {
+    it('✅ deve atualizar apenas o name mantendo demais campos intactos', async () => {
       const created = await createEquipment();
 
       const res = await request(app.getHttpServer())
         .patch(`/equipments/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ nome: 'Notebook Atualizado' })
+        .send({ name: 'Notebook Atualizado' })
         .expect(200);
 
-      expect(res.body.nome).toBe('Notebook Atualizado');
-      expect(res.body.localizacao).toBe(equipmentPayload.localizacao);
-      expect(res.body.patrimonio).toBe(equipmentPayload.patrimonio);
-      expect(res.body.modelo).toBe(equipmentPayload.modelo);
+      expect(res.body.name).toBe('Notebook Atualizado');
+      expect(res.body.location).toBe(equipmentPayload.location);
+      expect(res.body.assetTag).toBe(equipmentPayload.assetTag);
+      expect(res.body.model).toBe(equipmentPayload.model);
     });
 
-    it('✅ deve atualizar o estado do equipamento', async () => {
+    it('✅ deve atualizar o status do equipamento', async () => {
       const created = await createEquipment();
 
       const res = await request(app.getHttpServer())
         .patch(`/equipments/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ estado: 'MANUTENCAO' })
+        .send({ status: 'MANUTENCAO' })
         .expect(200);
 
-      expect(res.body.estado).toBe('MANUTENCAO');
+      expect(res.body.status).toBe('MANUTENCAO');
     });
 
     it('✅ deve atualizar múltiplos campos de uma vez', async () => {
@@ -589,57 +585,56 @@ describe('Equipments (e2e)', () => {
         .patch(`/equipments/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
-          nome: 'Novo Nome',
-          localizacao: 'Nova Localização',
-          estado: 'MANUTENCAO',
+          name: 'Novo Nome',
+          location: 'Nova Localização',
+          status: 'MANUTENCAO',
         })
         .expect(200);
 
-      expect(res.body.nome).toBe('Novo Nome');
-      expect(res.body.localizacao).toBe('Nova Localização');
-      expect(res.body.estado).toBe('MANUTENCAO');
+      expect(res.body.name).toBe('Novo Nome');
+      expect(res.body.location).toBe('Nova Localização');
+      expect(res.body.status).toBe('MANUTENCAO');
     });
 
-    it('✅ deve atualizar o IP com valor válido', async () => {
+    it('✅ deve atualizar o ipAddress com valor válido', async () => {
       const created = await createEquipment();
 
       const res = await request(app.getHttpServer())
         .patch(`/equipments/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ ip: '10.0.0.1' })
+        .send({ ipAddress: '10.0.0.1' })
         .expect(200);
 
-      expect(res.body.ip).toBe('10.0.0.1');
+      expect(res.body.ipAddress).toBe('10.0.0.1');
     });
 
     it('❌ deve retornar 404 ao atualizar ID inexistente', async () => {
-      // PrismaExceptionFilter mapeia P2025 → 404
       const res = await request(app.getHttpServer())
         .patch('/equipments/id-inexistente')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ nome: 'Qualquer' })
+        .send({ name: 'Qualquer' })
         .expect(404);
 
       expect(res.body.error).toBe('Not Found');
     });
 
-    it('❌ deve rejeitar estado inválido no PATCH', async () => {
+    it('❌ deve rejeitar status inválido no PATCH', async () => {
       const created = await createEquipment();
 
       await request(app.getHttpServer())
         .patch(`/equipments/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ estado: 'ESTADO_INVALIDO' })
+        .send({ status: 'STATUS_INVALIDO' })
         .expect(400);
     });
 
-    it('❌ deve rejeitar IP inválido no PATCH', async () => {
+    it('❌ deve rejeitar ipAddress inválido no PATCH', async () => {
       const created = await createEquipment();
 
       await request(app.getHttpServer())
         .patch(`/equipments/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ ip: 'nao-e-um-ip' })
+        .send({ ipAddress: 'nao-e-um-ip' })
         .expect(400);
     });
 
@@ -658,7 +653,7 @@ describe('Equipments (e2e)', () => {
 
       await request(app.getHttpServer())
         .patch(`/equipments/${created.id}`)
-        .send({ nome: 'Sem Token' })
+        .send({ name: 'Sem Token' })
         .expect(401);
     });
   });
@@ -685,7 +680,6 @@ describe('Equipments (e2e)', () => {
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
-      // confirmação via GET — deve retornar 404
       await request(app.getHttpServer())
         .get(`/equipments/${created.id}`)
         .set('Authorization', `Bearer ${accessToken}`)
@@ -697,7 +691,7 @@ describe('Equipments (e2e)', () => {
 
       await request(app.getHttpServer())
         .delete(`/equipments/${created.id}`)
-        .set('Authorization', `Bearer ${accessToken}`) // role USER
+        .set('Authorization', `Bearer ${accessToken}`)
         .expect(403);
     });
 
@@ -710,7 +704,6 @@ describe('Equipments (e2e)', () => {
     });
 
     it('❌ deve retornar 404 ao deletar ID inexistente', async () => {
-      // PrismaExceptionFilter mapeia P2025 → 404
       const res = await request(app.getHttpServer())
         .delete('/equipments/id-inexistente')
         .set('Authorization', `Bearer ${adminToken}`)
