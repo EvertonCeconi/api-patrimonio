@@ -12,6 +12,26 @@ import * as bcrypt from 'bcrypt';
 export class AdminService {
   constructor(private prismaService: PrismaService) {}
 
+  private async getFirstAdminId(): Promise<string | null> {
+    const firstAdmin = await this.prismaService.user.findFirst({
+      where: { role: 'ADMIN' },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+    return firstAdmin?.id ?? null;
+  }
+
+  private async guardFirstAdmin(targetId: string, action: string): Promise<void> {
+    const firstAdminId = await this.getFirstAdminId();
+    if (firstAdminId && targetId === firstAdminId) {
+      throw new ForbiddenException(
+        `O primeiro administrador do sistema não pode ser ${action}.`,
+      );
+    }
+  }
+
+  // ─── CRUD ─────────────────────────────────────────────────────────────────
+
   async findAllUsers(query: UserPaginationDto) {
     const { page, limit, search, isActive, role } = query;
 
@@ -115,6 +135,10 @@ export class AdminService {
   async updateUser(id: string, data: UpdateUserDto, requesterId: string) {
     await this.findUserById(id);
 
+    if (id !== requesterId) {
+      await this.guardFirstAdmin(id, 'editado');
+    }
+
     if (id === requesterId && data.role && data.role !== 'ADMIN') {
       throw new ForbiddenException('Você não pode rebaixar sua própria role');
     }
@@ -184,6 +208,8 @@ export class AdminService {
     if (id === requesterId) {
       throw new ForbiddenException('Você não pode excluir sua própria conta');
     }
+
+    await this.guardFirstAdmin(id, 'excluído');
 
     await this.findUserById(id);
 
