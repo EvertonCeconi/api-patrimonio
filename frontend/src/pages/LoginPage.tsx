@@ -2,6 +2,16 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
+function extractApiError(err: unknown): string {
+  if (err && typeof err === 'object' && 'response' in err) {
+    const res = (err as { response?: { data?: { message?: string | string[] } } }).response;
+    const msg = res?.data?.message;
+    if (Array.isArray(msg)) return msg.join(', ');
+    if (typeof msg === 'string') return msg;
+  }
+  return 'Erro inesperado. Tente novamente.';
+}
+
 export function LoginPage() {
   const { signIn } = useAuth();
   const [form, setForm] = useState({ email: '', password: '' });
@@ -14,8 +24,8 @@ export function LoginPage() {
     setLoading(true);
     try {
       await signIn(form);
-    } catch {
-      setError('Email ou senha incorretos.');
+    } catch (err) {
+      setError(extractApiError(err));
     } finally {
       setLoading(false);
     }
