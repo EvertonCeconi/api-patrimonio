@@ -64,6 +64,10 @@ describe('Equipments (e2e)', () => {
     await prisma.user.deleteMany();
 
     await request(app.getHttpServer()).post('/auth/signup').send(user);
+    await prisma.user.update({
+      where: { email: user.email },
+      data: { isActive: true },
+    });
     const userRes = await request(app.getHttpServer())
       .post('/auth/signin')
       .send({ email: user.email, password: user.password });
@@ -72,7 +76,7 @@ describe('Equipments (e2e)', () => {
     await request(app.getHttpServer()).post('/auth/signup').send(adminUser);
     await prisma.user.update({
       where: { email: adminUser.email },
-      data: { role: 'ADMIN' },
+      data: { role: 'ADMIN', isActive: true },
     });
     const adminRes = await request(app.getHttpServer())
       .post('/auth/signin')

@@ -1,14 +1,27 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { translateError } from '@/lib/translateError';
 
 function extractApiError(err: unknown): string {
   if (err && typeof err === 'object' && 'response' in err) {
-    const res = (err as { response?: { data?: { message?: string | string[] } } }).response;
-    const msg = res?.data?.message;
-    if (Array.isArray(msg)) return msg.join(', ');
-    if (typeof msg === 'string') return msg;
-  }
+      const data = (err as { response?: { data?: unknown } }).response?.data;
+  
+      if (data && typeof data === 'object') {
+        // Formato class-validator: { errors: [{ field, code }] }
+        if ('errors' in data && Array.isArray((data as { errors: unknown[] }).errors)) {
+          const fieldErrors = (data as { errors: { field: string; code: string }[] }).errors;
+          return fieldErrors.map(translateError).join(', ');
+        }
+  
+        // Formato NestJS padrão: { message: string | string[] }
+        if ('message' in data) {
+          const msg = (data as { message: string | string[] }).message;
+          if (Array.isArray(msg)) return msg.join(', ');
+          if (typeof msg === 'string') return msg;
+        }
+      }
+    }
   return 'Erro inesperado. Tente novamente.';
 }
 
