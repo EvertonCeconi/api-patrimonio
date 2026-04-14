@@ -1,4 +1,4 @@
-export function translateError(error: { field: string; code: string; meta?: any }) {
+export function translateError(error: { field: string; code: string; meta?: { min?: number; max?: number } }) {
   const map: Record<string, string> = {
     INVALID_FIELD: 'Campo inválido',
     REQUIRED: 'Campo obrigatório',
@@ -23,6 +23,7 @@ export function translateError(error: { field: string; code: string; meta?: any 
     location: 'Localização',
     email: 'E-mail',
     password: 'Senha',
+    currentPassword: 'Senha atual',
     role: 'Permissão',
     isActive: 'Ativo',
     page: 'Página',

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { EquipmentDto } from './dtos/equipment.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateEquipmentDto } from './dtos/update-equipment.dto';
@@ -41,6 +41,10 @@ export class EquipmentsService {
 
   async findAll(query: PaginationDto) {
     const { page, limit, search, status } = query;
+
+    if (search && search.length > 100) {
+      throw new BadRequestException('Busca muito longa');
+    }
 
     const skip = (page - 1) * limit;
 

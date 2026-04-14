@@ -53,6 +53,11 @@ export class AdminService {
 
   async findAllUsers(query: UserPaginationDto) {
     const { page, limit, search, isActive, role } = query;
+
+    if (search && search.length > 100) {
+      throw new BadRequestException('Busca muito longa');
+    }
+
     const skip = (page - 1) * limit;
 
     const where = {
