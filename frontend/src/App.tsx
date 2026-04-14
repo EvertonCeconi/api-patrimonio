@@ -6,7 +6,6 @@ import { EquipmentsPage } from '@/pages/EquipmentsPage';
 import { AdminPage }      from '@/pages/AdminPage';
 import { AppLayout }      from '@/components/layout/AppLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { useInitAuth }    from '@/hooks/useInitAuth';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,7 +17,6 @@ const queryClient = new QueryClient({
 });
 
 function Root() {
-  useInitAuth();
 
   return (
     <Routes>

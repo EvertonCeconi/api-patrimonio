@@ -43,20 +43,23 @@ function processQueue(error: unknown, token: string | null) {
 
 api.interceptors.response.use(
   (response) => response,
-
   async (error) => {
     const originalRequest = error.config;
-
     const is401 = error.response?.status === 401;
     const isRefreshRoute = originalRequest.url?.includes('/auth/refresh');
     const alreadyRetried = originalRequest._retry;
+    
+    // ✅ NOVO: Ignora refresh automático em rotas públicas de auth
+    const isPublicAuthRoute = 
+      originalRequest.url?.includes('/auth/signin') || 
+      originalRequest.url?.includes('/auth/signup');
 
     // ❌ se não for caso de retry → só rejeita
-    if (!is401 || isRefreshRoute || alreadyRetried) {
-      return Promise.reject(error);
+    if (!is401 || isRefreshRoute || isPublicAuthRoute || alreadyRetried) {
+      return Promise.reject(error); // ✅ Agora rejeita com o erro ORIGINAL do login
     }
 
-    // 🧠 se já está fazendo refresh → entra na fila
+    // ... resto do código de refresh (mantém igual)
     if (isRefreshing) {
       return new Promise((resolve, reject) => {
         failedQueue.push({ resolve, reject });
@@ -66,34 +69,20 @@ api.interceptors.response.use(
       });
     }
 
-    // 🔒 trava refresh
     originalRequest._retry = true;
     isRefreshing = true;
 
     try {
-      // 🔥 usa instância separada
-      const { data } = await apiAuth.post<{ access_token: string }>(
-        '/auth/refresh'
-      );
-
+      const { data } = await apiAuth.post<{ access_token: string }>('/auth/refresh');
       const newToken = data.access_token;
-
       useAuthStore.getState().setToken(newToken);
-
-      // libera fila
       processQueue(null, newToken);
-
-      // refaz request original
       originalRequest.headers.Authorization = `Bearer ${newToken}`;
       return api(originalRequest);
-
     } catch (refreshError) {
       processQueue(refreshError, null);
-
       useAuthStore.getState().clear();
-
       return Promise.reject(refreshError);
-
     } finally {
       isRefreshing = false;
     }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { ApiErrorResponse, Equipment, EquipmentPayload, Estado } from '@/types';
+import { translateError } from '@/lib/translateError';
 import axios from 'axios';
 
 const ESTADOS: { value: Estado; label: string }[] = [
@@ -14,26 +15,6 @@ interface EquipmentFormProps {
   onSubmit: (data: EquipmentPayload) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
-}
-
-function translateError(error: { field: string; code: string }) {
-  const map: Record<string, string> = {
-    INVALID_FIELD: 'Campo inválido',
-    REQUIRED: 'Campo obrigatório',
-    INVALID_ENUM: 'Valor inválido',
-  };
-
-  const fieldMap: Record<string, string> = {
-    ipAddress: 'IP',
-    name: 'Nome',
-    model: 'Modelo',
-    location: 'Localização',
-  };
-
-  const field = fieldMap[error.field] ?? error.field;
-  const message = map[error.code] ?? error.code;
-
-  return `${field}: ${message}`;
 }
 
 export function EquipmentForm({ initial, onSubmit, onCancel, loading }: EquipmentFormProps) {

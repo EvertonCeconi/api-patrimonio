@@ -6,14 +6,20 @@ export class PaginationDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(1)
+  @Min(1, {
+    context: { min: 1 },
+  })
   page: number = 1;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(1)
-  @Max(100)
+  @Min(1, {
+    context: { min: 1 },
+  })
+  @Max(100, {
+    context: { max: 100 },
+  })
   limit: number = 10;
 
   @IsOptional()

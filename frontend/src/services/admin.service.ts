@@ -45,6 +45,7 @@ export interface UpdateUserPayload {
   name?: string;
   email?: string;
   password?: string;
+  currentPassword?: string;
   role?: 'ADMIN' | 'USER';
   isActive?: boolean;
 }

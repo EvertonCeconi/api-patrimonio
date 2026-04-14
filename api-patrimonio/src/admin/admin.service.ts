@@ -3,6 +3,8 @@ import {
   ConflictException,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto, UserPaginationDto } from './dtos/admin';
@@ -21,20 +23,36 @@ export class AdminService {
     return firstAdmin?.id ?? null;
   }
 
-  private async guardFirstAdmin(targetId: string, action: string): Promise<void> {
-    const firstAdminId = await this.getFirstAdminId();
-    if (firstAdminId && targetId === firstAdminId) {
-      throw new ForbiddenException(
-        `O primeiro administrador do sistema não pode ser ${action}.`,
-      );
-    }
+  // ─── Busca usuário e INCLUI o hash da senha (essencial para validação) ────
+  async findUserById(id: string) {
+    const user = await this.prismaService.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    if (!user) throw new NotFoundException('Usuário não encontrado');
+    return user;
   }
 
-  // ─── CRUD ─────────────────────────────────────────────────────────────────
+  async getPasswordHash(id: string): Promise<string> {
+    const user = await this.prismaService.user.findUnique({
+      where: { id },
+      select: { passwordHash: true },
+    });
+
+    if (!user) throw new NotFoundException('Usuário não encontrado');
+    return user.passwordHash;
+  }
 
   async findAllUsers(query: UserPaginationDto) {
     const { page, limit, search, isActive, role } = query;
-
     const skip = (page - 1) * limit;
 
     const where = {
@@ -81,35 +99,11 @@ export class AdminService {
     };
   }
 
-  async findUserById(id: string) {
-    const user = await this.prismaService.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    if (!user) {
-      throw new NotFoundException('Usuário não encontrado');
-    }
-
-    return user;
-  }
-
   async createUser(data: CreateUserDto) {
     const userExists = await this.prismaService.user.findUnique({
       where: { email: data.email },
     });
-
-    if (userExists) {
-      throw new ConflictException('Usuário já existe');
-    }
+    if (userExists) throw new ConflictException('Usuário já existe');
 
     const passwordHash = await bcrypt.hash(data.password, 10);
 
@@ -133,27 +127,56 @@ export class AdminService {
   }
 
   async updateUser(id: string, data: UpdateUserDto, requesterId: string) {
-    await this.findUserById(id);
+    const targetUser = await this.findUserById(id);
+    const firstAdminId = await this.getFirstAdminId();
+    const isTargetOwner = firstAdminId && targetUser.id === firstAdminId;
+    const isSelf = requesterId === targetUser.id;
 
-    if (id !== requesterId) {
-      await this.guardFirstAdmin(id, 'editado');
+    // 🔒 Owner só pode ser editado por ele mesmo
+    if (isTargetOwner && !isSelf) {
+      throw new ForbiddenException(
+        'O Owner só pode ser editado por ele mesmo.',
+      );
     }
 
-    if (id === requesterId && data.role && data.role !== 'ADMIN') {
-      throw new ForbiddenException('Você não pode rebaixar sua própria role');
-    }
-
-    if (data.email) {
-      const emailTaken = await this.prismaService.user.findFirst({
-        where: { email: data.email, NOT: { id } },
-      });
-
-      if (emailTaken) {
-        throw new ConflictException('E-mail já está em uso');
+    // 🛡 Se for self-edit do owner, bloqueia role e status
+    if (isTargetOwner && isSelf) {
+      if (data.role && data.role !== targetUser.role) {
+        throw new ForbiddenException(
+          'Owner não pode alterar sua própria role.',
+        );
+      }
+      if (data.isActive !== undefined) {
+        throw new ForbiddenException(
+          'Owner não pode alterar seu próprio status.',
+        );
       }
     }
 
+    if (data.password && requesterId === id) {
+      if (!data.currentPassword) {
+        throw new BadRequestException('Senha atual obrigatória');
+      }
+
+      const hash = await this.getPasswordHash(id);
+
+      const isMatch = await bcrypt.compare(data.currentPassword, hash);
+
+      if (!isMatch) {
+        throw new UnauthorizedException('Credenciais inválidas');
+      }
+    }
+
+    // 📧 Validação de email duplicado
+    if (data.email && data.email !== targetUser.email) {
+      const emailTaken = await this.prismaService.user.findFirst({
+        where: { email: data.email, NOT: { id } },
+      });
+      if (emailTaken) throw new ConflictException('E-mail já está em uso');
+    }
+
     const updateData: Record<string, unknown> = { ...data };
+    delete updateData.currentPassword; // Remove do payload final para não salvar no banco
 
     if (data.password) {
       updateData.passwordHash = await bcrypt.hash(data.password, 10);
@@ -176,45 +199,35 @@ export class AdminService {
 
   async activateUser(id: string) {
     await this.findUserById(id);
-
     return this.prismaService.user.update({
       where: { id },
       data: { isActive: true },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        isActive: true,
-      },
+      select: { id: true, name: true, email: true, isActive: true },
     });
   }
 
   async promoteToAdmin(id: string) {
     await this.findUserById(id);
-
     return this.prismaService.user.update({
       where: { id },
       data: { role: 'ADMIN' },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-      },
+      select: { id: true, name: true, email: true, role: true },
     });
   }
 
   async deleteUser(id: string, requesterId: string) {
-    if (id === requesterId) {
+    if (id === requesterId)
       throw new ForbiddenException('Você não pode excluir sua própria conta');
+
+    const firstAdminId = await this.getFirstAdminId();
+    if (firstAdminId && id === firstAdminId) {
+      throw new ForbiddenException(
+        'O primeiro administrador do sistema não pode ser excluído.',
+      );
     }
 
-    await this.guardFirstAdmin(id, 'excluído');
-
     await this.findUserById(id);
-
     await this.prismaService.user.delete({ where: { id } });
-
     return { message: 'Usuário excluído com sucesso' };
   }
 }

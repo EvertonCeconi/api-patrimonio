@@ -5,24 +5,16 @@ import { adminService } from '@/services/admin.service';
 import { useAuthStore } from '@/store/auth.store';
 import type { User, GetUsersParams, CreateUserPayload, UpdateUserPayload } from '@/services/admin.service';
 import type { PaginationMeta } from '@/types';
-
-// ─── Error extractor ─────────────────────────────────────────────────────────
-// Suporta:
-//   { message: string | string[] }                    → NestJS padrão
-//   { errors: [{ field: string; code: string }] }     → class-validator customizado
+import { translateError } from '@/lib/translateError';
 
 function extractErrorMessage(err: unknown): string {
   if (err && typeof err === 'object' && 'response' in err) {
     const data = (err as { response?: { data?: unknown } }).response?.data;
-
     if (data && typeof data === 'object') {
-      // Formato class-validator: { errors: [{ field, code }] }
       if ('errors' in data && Array.isArray((data as { errors: unknown[] }).errors)) {
         const fieldErrors = (data as { errors: { field: string; code: string }[] }).errors;
-        return fieldErrors.map(({ field, code }) => `${field}: ${code}`).join(', ');
+        return fieldErrors.map(translateError).join(', ');
       }
-
-      // Formato NestJS padrão: { message: string | string[] }
       if ('message' in data) {
         const msg = (data as { message: string | string[] }).message;
         if (Array.isArray(msg)) return msg.join(', ');
@@ -34,14 +26,9 @@ function extractErrorMessage(err: unknown): string {
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
-
 function RoleBadge({ role }: { role: string }) {
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${
-      role === 'ADMIN'
-        ? 'bg-brand-50 text-brand-700 ring-1 ring-brand-200'
-        : 'bg-surface-100 text-surface-600 ring-1 ring-surface-200'
-    }`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${ role === 'ADMIN' ? 'bg-brand-50 text-brand-700 ring-1 ring-brand-200' : 'bg-surface-100 text-surface-600 ring-1 ring-surface-200' }`}>
       {role}
     </span>
   );
@@ -49,11 +36,7 @@ function RoleBadge({ role }: { role: string }) {
 
 function ActiveBadge({ isActive }: { isActive: boolean }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium ${
-      isActive
-        ? 'bg-green-50 text-green-700 ring-1 ring-green-200'
-        : 'bg-red-50 text-red-600 ring-1 ring-red-200'
-    }`}>
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium ${ isActive ? 'bg-green-50 text-green-700 ring-1 ring-green-200' : 'bg-red-50 text-red-600 ring-1 ring-red-200' }`}>
       <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-500' : 'bg-red-400'}`} />
       {isActive ? 'Ativo' : 'Inativo'}
     </span>
@@ -61,44 +44,50 @@ function ActiveBadge({ isActive }: { isActive: boolean }) {
 }
 
 // ─── User Form ────────────────────────────────────────────────────────────────
-
 interface UserFormProps {
   initial?: User | null;
   onSubmit: (payload: CreateUserPayload | UpdateUserPayload) => Promise<void>;
   loading: boolean;
   error: string | null;
+  isProtectedUser?: boolean;
 }
 
-function UserForm({ initial, onSubmit, loading, error }: UserFormProps) {
+function UserForm({ initial, onSubmit, loading, error, isProtectedUser = false }: UserFormProps) {
   const isEdit = !!initial;
   const [name, setName] = useState(initial?.name ?? '');
   const [email, setEmail] = useState(initial?.email ?? '');
   const [password, setPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState(''); // ✅ Estado adicionado
   const [role, setRole] = useState<'ADMIN' | 'USER'>(initial?.role ?? 'USER');
   const [isActive, setIsActive] = useState(initial?.isActive ?? false);
 
   const handleSubmit = async () => {
+    const isChangingPassword = password.length > 0;
     const payload: CreateUserPayload | UpdateUserPayload = isEdit
       ? {
           ...(name !== initial?.name && { name }),
           ...(email !== initial?.email && { email }),
-          ...(password && { password }),
+          // ✅ Inclui currentPassword apenas se estiver alterando a senha
+          ...(isChangingPassword && { password, currentPassword }),
           ...(role !== initial?.role && { role }),
           ...(isActive !== initial?.isActive && { isActive }),
         }
       : { name, email, password, role, isActive };
-
+      
     await onSubmit(payload);
   };
+
+  // ✅ Owner não pode alterar role ou status de si mesmo
+  const disableRoleStatus = isEdit && isProtectedUser;
 
   return (
     <div className="space-y-4">
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
           {error}
         </div>
       )}
-
+      
       <div>
         <label className="block text-xs font-medium text-surface-700 mb-1">Nome</label>
         <input className="input w-full" value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome completo" />
@@ -113,22 +102,55 @@ function UserForm({ initial, onSubmit, loading, error }: UserFormProps) {
         <label className="block text-xs font-medium text-surface-700 mb-1">
           Senha {isEdit && <span className="text-surface-400">(deixe em branco para manter)</span>}
         </label>
-        <input className="input w-full" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={isEdit ? '••••••••' : 'Mínimo 8 caracteres'} />
+        <input 
+          className="input w-full" 
+          type="password" 
+          value={password} 
+          onChange={(e) => setPassword(e.target.value)} 
+          placeholder={isEdit ? '••••••••' : 'Mínimo 8 caracteres'} 
+        />
       </div>
+
+      {/* ✅ Campo de senha atual (aparece apenas na edição quando há nova senha) */}
+      {isEdit && password.length > 0 && (
+        <div>
+          <label className="block text-xs font-medium text-surface-700 mb-1">
+            Senha atual <span className="text-red-500">*</span>
+          </label>
+          <input 
+            className="input w-full" 
+            type="password" 
+            value={currentPassword} 
+            onChange={(e) => setCurrentPassword(e.target.value)} 
+            placeholder="Confirme sua senha atual"
+            required
+          />
+        </div>
+      )}
 
       <div className="flex gap-4">
         <div className="flex-1">
           <label className="block text-xs font-medium text-surface-700 mb-1">Role</label>
-          <select className="input w-full" value={role} onChange={(e) => setRole(e.target.value as 'ADMIN' | 'USER')}>
+          <select 
+            className="input w-full" 
+            value={role} 
+            onChange={(e) => setRole(e.target.value as 'ADMIN' | 'USER')}
+            disabled={disableRoleStatus}
+            title={disableRoleStatus ? 'Owner não pode alterar sua própria role' : ''}
+          >
             <option value="USER">USER</option>
             <option value="ADMIN">ADMIN</option>
           </select>
         </div>
 
         <div className="flex-1 flex flex-col justify-end">
-          <label className="flex items-center gap-2 cursor-pointer pb-2">
+          <label className={`flex items-center gap-2 pb-2 ${disableRoleStatus ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
             <span className="text-xs font-medium text-surface-700">Ativo</span>
-            <div onClick={() => setIsActive((v) => !v)} className={`relative w-9 h-5 rounded-full transition-colors cursor-pointer ${isActive ? 'bg-brand-600' : 'bg-surface-200'}`}>
+            <div 
+              onClick={() => !disableRoleStatus && setIsActive((v) => !v)} 
+              className={`relative w-9 h-5 rounded-full transition-colors ${isActive ? 'bg-brand-600' : 'bg-surface-200'}`}
+              title={disableRoleStatus ? 'Owner não pode alterar seu próprio status' : ''}
+            >
               <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${isActive ? 'translate-x-4' : ''}`} />
             </div>
           </label>
@@ -153,7 +175,6 @@ function UserForm({ initial, onSubmit, loading, error }: UserFormProps) {
 }
 
 // ─── Confirm Delete ───────────────────────────────────────────────────────────
-
 interface ConfirmDeleteProps {
   user: User;
   onConfirm: () => Promise<void>;
@@ -166,19 +187,16 @@ function ConfirmDelete({ user, onConfirm, onCancel, loading, error }: ConfirmDel
   return (
     <div className="space-y-4">
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+          {error}
+        </div>
       )}
       <p className="text-sm text-surface-700">
-        Tem certeza que deseja excluir o usuário{' '}
-        <span className="font-semibold text-surface-900">{user.name}</span>? Esta ação não pode ser desfeita.
+        Tem certeza que deseja excluir o usuário <strong>{user.name}</strong>? Esta ação não pode ser desfeita.
       </p>
-      <div className="flex justify-end gap-2 pt-2">
+      <div className="flex justify-end gap-2">
         <button onClick={onCancel} className="btn-secondary">Cancelar</button>
-        <button
-          onClick={onConfirm}
-          disabled={loading}
-          className="btn-primary bg-red-600 hover:bg-red-700 focus:ring-red-500 min-w-[100px] justify-center"
-        >
+        <button onClick={onConfirm} disabled={loading} className="btn-primary bg-red-600 hover:bg-red-700 focus:ring-red-500 min-w-[100px] justify-center">
           {loading ? 'Excluindo...' : 'Excluir'}
         </button>
       </div>
@@ -187,7 +205,6 @@ function ConfirmDelete({ user, onConfirm, onCancel, loading, error }: ConfirmDel
 }
 
 // ─── Main AdminPage ───────────────────────────────────────────────────────────
-
 type ModalState =
   | { type: 'create' }
   | { type: 'edit'; user: User }
@@ -198,31 +215,22 @@ const LIMIT = 10;
 
 export function AdminPage() {
   const currentUserId = useAuthStore((s) => s.user?.id);
-
   const [users, setUsers] = useState<User[]>([]);
   const [meta, setMeta] = useState<PaginationMeta | null>(null);
   const [firstAdminId, setFirstAdminId] = useState<string | null>(null);
-
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [activeFilter, setActiveFilter] = useState<'' | 'true' | 'false'>('');
-
   const [listLoading, setListLoading] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
-
   const [modal, setModal] = useState<ModalState>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-
   const [inlineAction, setInlineAction] = useState<{ id: string; type: string } | null>(null);
-
-  // ─── Busca o primeiro admin criado (menor createdAt com role ADMIN) ──────
 
   const fetchFirstAdmin = useCallback(async () => {
     try {
-      // Busca admins ordenados por createdAt asc com limit=1
-      // Como a API só ordena desc, buscamos todos admins e pegamos o mais antigo
       const res = await adminService.getUsers({ role: 'ADMIN', limit: 100, page: 1 });
       if (res.data.length > 0) {
         const oldest = res.data.reduce((prev, curr) =>
@@ -231,11 +239,9 @@ export function AdminPage() {
         setFirstAdminId(oldest.id);
       }
     } catch {
-      // silencioso — proteção best-effort
+      // silencioso
     }
   }, []);
-
-  // ─── Fetch users ──────────────────────────────────────────────────────────
 
   const fetchUsers = useCallback(async () => {
     setListLoading(true);
@@ -245,7 +251,6 @@ export function AdminPage() {
       if (search) params.search = search;
       if (roleFilter) params.role = roleFilter;
       if (activeFilter !== '') params.isActive = activeFilter === 'true';
-
       const res = await adminService.getUsers(params);
       setUsers(res.data);
       setMeta(res.meta);
@@ -260,11 +265,7 @@ export function AdminPage() {
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
   useEffect(() => { setPage(1); }, [search, roleFilter, activeFilter]);
 
-  // ─── Verifica se usuário é o primeiro admin (protegido) ──────────────────
-
   const isProtected = (user: User) => user.id === firstAdminId;
-
-  // ─── Actions ──────────────────────────────────────────────────────────────
 
   const handleCreate = async (payload: CreateUserPayload | UpdateUserPayload) => {
     setActionLoading(true);
@@ -333,12 +334,11 @@ export function AdminPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-surface-900">Painel Administrativo</h1>
-          <p className="text-sm text-surface-500 mt-0.5">Gerenciamento de usuários do sistema</p>
+          <h1 className="text-2xl font-bold text-surface-900">Painel Administrativo</h1>
+          <p className="text-sm text-surface-500">Gerenciamento de usuários do sistema</p>
         </div>
         <button
           onClick={() => { setActionError(null); setModal({ type: 'create' }); }}
@@ -351,7 +351,6 @@ export function AdminPage() {
         </button>
       </div>
 
-      {/* Filters */}
       <div className="card p-4 flex flex-wrap gap-3">
         <div className="flex-1 min-w-[200px] relative">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -384,7 +383,6 @@ export function AdminPage() {
         )}
       </div>
 
-      {/* Error banner */}
       {listError && (
         <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
           <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -394,7 +392,6 @@ export function AdminPage() {
         </div>
       )}
 
-      {/* Table */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -432,6 +429,7 @@ export function AdminPage() {
                   const isInlineLoading = inlineAction?.id === user.id;
                   const protected_ = isProtected(user);
                   const isSelf = user.id === currentUserId;
+                  const canEdit = !protected_ || isSelf; // ✅ Lógica corrigida
 
                   return (
                     <tr key={user.id} className={`hover:bg-surface-50 transition-colors ${protected_ ? 'bg-amber-50/40' : ''}`}>
@@ -465,19 +463,23 @@ export function AdminPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
-                          {/* Editar — bloqueado para o primeiro admin */}
+                          {/* Editar */}
                           <button
-                            title={protected_ ? 'Owner não pode ser editado' : 'Editar'}
-                            disabled={protected_}
-                            onClick={() => { if (!protected_) { setActionError(null); setModal({ type: 'edit', user }); } }}
-                            className={`btn-ghost p-1.5 transition-colors ${protected_ ? 'opacity-30 cursor-not-allowed' : 'text-surface-500 hover:text-brand-600'}`}
+                            title={!canEdit ? 'Owner só pode ser editado por ele mesmo' : 'Editar'}
+                            disabled={!canEdit}
+                            onClick={() => {
+                              if (canEdit) {
+                                setActionError(null);
+                                setModal({ type: 'edit', user });
+                              }
+                            }}
+                            className={`btn-ghost p-1.5 transition-colors ${!canEdit ? 'opacity-30 cursor-not-allowed' : 'text-surface-500 hover:text-brand-600'}`}
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                             </svg>
                           </button>
 
-                          {/* Ativar */}
                           {!user.isActive && (
                             <button
                               title="Ativar"
@@ -498,7 +500,6 @@ export function AdminPage() {
                             </button>
                           )}
 
-                          {/* Promover */}
                           {user.role !== 'ADMIN' && (
                             <button
                               title="Promover para Admin"
@@ -519,7 +520,6 @@ export function AdminPage() {
                             </button>
                           )}
 
-                          {/* Excluir — bloqueado para o primeiro admin */}
                           <button
                             title={protected_ ? 'Owner não pode ser excluído' : 'Excluir'}
                             disabled={protected_}
@@ -547,7 +547,6 @@ export function AdminPage() {
         )}
       </div>
 
-      {/* Modals */}
       <Modal open={modal?.type === 'create'} onClose={() => setModal(null)} title="Criar usuário">
         <UserForm onSubmit={handleCreate} loading={actionLoading} error={actionError} />
       </Modal>
@@ -559,6 +558,7 @@ export function AdminPage() {
             onSubmit={(payload) => handleUpdate(modal.user.id, payload)}
             loading={actionLoading}
             error={actionError}
+            isProtectedUser={modal.user.id === firstAdminId && modal.user.id === currentUserId} // ✅ Prop dinâmica
           />
         )}
       </Modal>
