@@ -15,11 +15,14 @@ export function useInitAuth() {
         const result = await authService.refreshWithLock();
         setToken(result.access_token);
         if (result.user) setUser(result.user);
-      } catch { /* empty */ } finally {
+      } catch {
+        // ✅ Falha silenciosa: cookie expirado ou inválido.
+        // O ProtectedRoute cuidará de redirecionar para /login.
+      } finally {
         setReady(true);
       }
     }
 
     init();
-  }, []);
+  }, [setToken, setUser, setReady]);
 }

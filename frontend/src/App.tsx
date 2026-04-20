@@ -3,9 +3,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LoginPage }      from '@/pages/LoginPage';
 import { SignUpPage }     from '@/pages/SignUpPage';
 import { EquipmentsPage } from '@/pages/EquipmentsPage';
+import { AdminPage }      from '@/pages/AdminPage';
 import { AppLayout }      from '@/components/layout/AppLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { useInitAuth }    from '@/hooks/useInitAuth';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,7 +17,6 @@ const queryClient = new QueryClient({
 });
 
 function Root() {
-  useInitAuth();
 
   return (
     <Routes>
@@ -27,6 +26,11 @@ function Root() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/equipments" element={<EquipmentsPage />} />
+
+          {/* Admin-only route */}
+          <Route element={<ProtectedRoute requiredRole="ADMIN" />}>
+            <Route path="/admin" element={<AdminPage />} />
+          </Route>
         </Route>
       </Route>
 

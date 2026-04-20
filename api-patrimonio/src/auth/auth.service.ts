@@ -40,7 +40,7 @@ export class AuthService {
     });
 
     if (userExists) {
-      throw new ConflictException('User already exists');
+      throw new ConflictException('Usuário já existe');
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10);
@@ -67,7 +67,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Credenciais inválidas');
     }
 
     const passwordMatch = await bcrypt.compare(
@@ -76,7 +76,7 @@ export class AuthService {
     );
 
     if (!passwordMatch) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Credenciais inválidas');
     }
 
     if (!user.isActive) {
