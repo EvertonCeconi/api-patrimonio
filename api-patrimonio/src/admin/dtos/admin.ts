@@ -15,16 +15,24 @@ import { Role } from '@prisma/client';
 
 export class CreateUserDto {
   @IsString()
-  @MinLength(2)
-  @MaxLength(100)
+  @MinLength(2, {
+    context: { min: 2 },
+  })
+  @MaxLength(100, {
+    context: { max: 100 },
+  })
   name: string;
 
   @IsEmail()
   email: string;
 
   @IsString()
-  @MinLength(8)
-  @MaxLength(72)
+  @MinLength(8, {
+    context: { min: 8 },
+  })
+  @MaxLength(72, {
+    context: { max: 72 },
+  })
   password: string;
 
   @IsOptional()
@@ -39,8 +47,12 @@ export class CreateUserDto {
 export class UpdateUserDto {
   @IsOptional()
   @IsString()
-  @MinLength(2)
-  @MaxLength(100)
+  @MinLength(2, {
+    context: { min: 2 },
+  })
+  @MaxLength(100, {
+    context: { max: 100 },
+  })
   name?: string;
 
   @IsOptional()
@@ -49,9 +61,23 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsString()
-  @MinLength(8)
-  @MaxLength(72)
+  @MinLength(8, {
+    context: { min: 8 },
+  })
+  @MaxLength(72, {
+    context: { max: 72 },
+  })
   password?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(8, {
+    context: { min: 8 },
+  })
+  @MaxLength(72, {
+    context: { max: 72 },
+  })
+  currentPassword?: string;
 
   @IsOptional()
   @IsEnum(Role)
@@ -66,14 +92,20 @@ export class UserPaginationDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(1)
+  @Min(1, {
+    context: { min: 1 },
+  })
   page: number = 1;
 
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  @Min(1)
-  @Max(100)
+  @Min(1, {
+    context: { min: 1 },
+  })
+  @Max(100, {
+    context: { max: 100 },
+  })
   limit: number = 10;
 
   @IsOptional()
