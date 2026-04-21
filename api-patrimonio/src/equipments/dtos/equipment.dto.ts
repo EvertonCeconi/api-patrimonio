@@ -12,13 +12,13 @@ export class EquipmentDto {
   @IsString()
   name: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
-  assetTag?: string;
+  assetTag: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
-  serialNumber?: string;
+  serialNumber: string;
 
   @IsOptional()
   @IsIP()

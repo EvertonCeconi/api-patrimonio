@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ApiErrorResponse, Equipment, EquipmentPayload, Estado } from '@/types';
-import { translateError } from '@/lib/translateError';
+import { translateConflict, translateError } from '@/lib/translateError';
 import axios from 'axios';
 
 const ESTADOS: { value: Estado; label: string }[] = [
@@ -51,7 +51,7 @@ export function EquipmentForm({ initial, onSubmit, onCancel, loading }: Equipmen
         const data = err.response?.data;
 
         if (status === 409) {
-          setError('Patrimônio já cadastrado.');
+          setError(translateConflict(data?.message ?? ''));
           return;
         }
 
@@ -79,13 +79,13 @@ export function EquipmentForm({ initial, onSubmit, onCancel, loading }: Equipmen
         <div className="col-span-2">
           <label className="label">Número de série</label>
           <input className="input" value={form.serialNumber}
-            onChange={(e) => set('serialNumber', e.target.value)} placeholder="Ex: 948347" />
+            onChange={(e) => set('serialNumber', e.target.value)} required placeholder="Ex: 948347" />
         </div>
 
         <div className="col-span-2">
           <label className="label">Patrimônio</label>
           <input className="input" value={form.assetTag}
-            onChange={(e) => set('assetTag', e.target.value)} placeholder="Ex: PAT-001" />
+            onChange={(e) => set('assetTag', e.target.value)} required  placeholder="Ex: PAT-001" />
         </div>        
 
       </div>
@@ -106,7 +106,7 @@ export function EquipmentForm({ initial, onSubmit, onCancel, loading }: Equipmen
         <div className="col-span-1">
           <label className="label">IP *</label>
           <input className="input" value={form.ipAddress}
-            onChange={(e) => set('ipAddress', e.target.value)} required placeholder="Ex: 192.168.0.1" />
+            onChange={(e) => set('ipAddress', e.target.value)} placeholder="Ex: 192.168.0.1" />
         </div>
 
         <div className="col-span-1">
@@ -128,7 +128,7 @@ export function EquipmentForm({ initial, onSubmit, onCancel, loading }: Equipmen
       </div>
 
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg col-span-2">{error}</p>
       )}
 
       <div className="flex gap-2 pt-1 space-between col-span-2">

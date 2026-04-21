@@ -24,12 +24,18 @@ export class PrismaExceptionFilter implements ExceptionFilter {
     let error = 'Internal Server Error';
 
     switch (exception.code) {
-      case 'P2002':
+      case 'P2002': {
         status = HttpStatus.CONFLICT;
-        message = 'Duplicate record';
         error = 'Conflict';
-        break;
 
+        const cause = (exception.meta?.driverAdapterError as any)?.cause;
+        const constraint: string = cause?.originalMessage ?? '';
+
+        // extrai o nome do campo do constraint, ex: "equipments_serialNumber_key"
+        const match = constraint.match(/"equipments_(.+)_key"/);
+        message = match ? match[1] : 'unknown';
+        break;
+      }
       case 'P2025':
         status = HttpStatus.NOT_FOUND;
         message = 'Record not found';
