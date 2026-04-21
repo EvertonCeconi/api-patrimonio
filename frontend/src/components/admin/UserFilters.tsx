@@ -20,8 +20,8 @@ export function UserFilters({
   const hasFilters = !!(search || roleFilter || activeFilter);
 
   return (
-    <div className="card p-4 flex flex-wrap gap-3">
-      <div className="flex-1 min-w-[200px] relative">
+    <div className="grid card p-4 flex-wrap gap-3">
+      <div className="flex-1 min-w-[200px] relative col-span-2">
         <svg
           className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400"
           fill="none"
@@ -39,7 +39,7 @@ export function UserFilters({
       </div>
 
       <select
-        className="input min-w-[140px]"
+        className="input min-w-[140px] col-span-1"
         value={roleFilter}
         onChange={(e) => onRoleChange(e.target.value)}
       >
@@ -49,7 +49,7 @@ export function UserFilters({
       </select>
 
       <select
-        className="input min-w-[140px]"
+        className="input min-w-[140px] col-span-1"
         value={activeFilter}
         onChange={(e) => onActiveChange(e.target.value as '' | 'true' | 'false')}
       >
@@ -59,7 +59,7 @@ export function UserFilters({
       </select>
 
       {hasFilters && (
-        <button className="btn-ghost text-surface-500" onClick={onClear}>
+        <button className="btn-ghost text-surface-500 col-span-2 ml-auto" onClick={onClear}>
           Limpar filtros
         </button>
       )}

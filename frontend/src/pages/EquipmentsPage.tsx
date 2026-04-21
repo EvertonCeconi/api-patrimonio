@@ -105,7 +105,7 @@ export function EquipmentsPage() {
       </div>
 
       {/* Table */}
-      <div className="card overflow-hidden">
+      <div className="card overflow-hidden overflow-x-auto">
         {isLoading ? (
           <div className="p-12 text-center text-surface-600 text-sm">Carregando…</div>
         ) : isError ? (
@@ -120,6 +120,7 @@ export function EquipmentsPage() {
               <tr className="border-b border-surface-100 bg-surface-50">
                 <th className="text-left px-4 py-3 font-medium text-surface-600">Nome</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-600">Modelo</th>
+                <th className="text-left px-4 py-3 font-medium text-surface-600">Número de série</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-600">IP</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-600">Localização</th>
                 <th className="text-left px-4 py-3 font-medium text-surface-600">Estado</th>
@@ -131,6 +132,7 @@ export function EquipmentsPage() {
                 <tr key={eq.id} className="hover:bg-surface-50 transition-colors">
                   <td className="px-4 py-3 font-medium text-surface-900">{eq.name}</td>
                   <td className="px-4 py-3 text-surface-600">{eq.model}</td>
+                  <td className="px-4 py-3 text-surface-600">{eq.serialNumber}</td>
                   <td className="px-4 py-3 font-mono text-xs text-surface-600">
                     {eq.ipAddress ?? '—'}
                   </td>

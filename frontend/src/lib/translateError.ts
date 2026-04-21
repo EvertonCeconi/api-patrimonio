@@ -1,3 +1,19 @@
+export const fieldMap: Record<string, string> = {
+    ipAddress: 'IP',
+    name: 'Nome',
+    model: 'Modelo',
+    location: 'Localização',
+    email: 'E-mail',
+    password: 'Senha',
+    currentPassword: 'Senha atual',
+    role: 'Permissão',
+    isActive: 'Ativo',
+    page: 'Página',
+    limit: 'Limite',
+    assetTag: 'Patrimônio',
+    serialNumber: 'Número de série',
+  };
+
 export function translateError(error: { field: string; code: string; meta?: { min?: number; max?: number } }) {
   const map: Record<string, string> = {
     INVALID_FIELD: 'Campo inválido',
@@ -14,20 +30,6 @@ export function translateError(error: { field: string; code: string; meta?: { mi
 
     MIN_VALUE: 'Valor muito baixo',
     MAX_VALUE: 'Valor muito alto',
-  };
-
-  const fieldMap: Record<string, string> = {
-    ipAddress: 'IP',
-    name: 'Nome',
-    model: 'Modelo',
-    location: 'Localização',
-    email: 'E-mail',
-    password: 'Senha',
-    currentPassword: 'Senha atual',
-    role: 'Permissão',
-    isActive: 'Ativo',
-    page: 'Página',
-    limit: 'Limite',
   };
 
   const field = fieldMap[error.field] ?? error.field;
@@ -52,4 +54,9 @@ export function translateError(error: { field: string; code: string; meta?: { mi
   const message = map[error.code] ?? error.code;
 
   return `${field}: ${message}`;
+}
+
+export function translateConflict(field: string) {
+  const translated = fieldMap[field] ?? field;
+  return `${translated} já cadastrado`;
 }

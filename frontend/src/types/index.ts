@@ -89,5 +89,8 @@ export interface ApiError {
 }
 
 export interface ApiErrorResponse {
-  errors: ApiError[];
+  errors?: ApiError[];
+  message?: string;
+  statusCode?: number;
+  error?: string;
 }
