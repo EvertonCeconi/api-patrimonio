@@ -4,7 +4,6 @@ services:
   postgres:
     image: postgres:15
     container_name: postgres_patrimonio
-    restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -22,7 +21,6 @@ services:
   api:
     build: ./api-patrimonio
     container_name: api_patrimonio
-    restart: always
     env_file:
       - ./api-patrimonio/.env
     ports:
@@ -38,7 +36,6 @@ services:
   frontend:
     build: ./frontend
     container_name: frontend_patrimonio
-    restart: always
     ports:
       - "5173:5173"
     volumes:
