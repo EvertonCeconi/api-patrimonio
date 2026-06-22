@@ -1,0 +1,232 @@
+MUDANÇAS DE SEGURANÇA REALIZADAS
+====================================
+Data: 22/06/2026
+Projeto: api-patrimonio
+
+Índice:
+1. Rate Limiting (Proteção contra brute force)
+2. Rotação de JWT_SECRET
+3. Hash de Refresh Tokens
+4. Rotação de Refresh Tokens
+5. Padronização de Respostas da API
+6. Consolidação de Filtros de Exceção
+7. Cron Job de Equipamentos Inativos
+8. Hardcoded Secrets → Environment Variables
+9. Varredura de Segurança
+
+--------------------------------------------------------------------
+1. RATE LIMITING (Proteção contra brute force)
+--------------------------------------------------------------------
+
+Problema:
+  Os endpoints de autenticação (/auth/signup, /auth/signin, /auth/refresh)
+  não tinham nenhum limite de requisições, permitindo que um atacante
+  tentasse senhas ou criasse contas indefinidamente.
+
+Solução:
+  - Instalado @nestjs/throttler.
+  - Configurado ThrottlerModule com limite global de 60 requisições/minuto.
+  - Criado guard personalizado ThrottlerBehindProxyGuard que:
+      * Usa req.ips (cabeçalho X-Forwarded-For) para rastrear IP real
+        atrás de proxies/reversos.
+      * Ignora rate limiting quando NODE_ENV=test (para não quebrar
+        os testes automatizados).
+  - Aplicado globalmente via APP_GUARD.
+  - Endpoints de importação (CSV/XLSX) têm @SkipThrottle() porque
+    são operações internas administrativas.
+
+Endpoints com limites específicos:
+  POST /auth/signup   → 5 requisições/minuto
+  POST /auth/signin   → 10 requisições/minuto
+  POST /auth/refresh  → 10 requisições/minuto
+  Demais endpoints    → 60 requisições/minuto (padrão global)
+
+Arquivos criados/modificados:
+  src/common/guards/throttler-behind-proxy.guard.ts  (CRIADO)
+  src/app.module.ts                                   (MODIFICADO)
+  src/auth/auth.controller.ts                         (MODIFICADO)
+  package.json                                        (MODIFICADO - dependência adicionada)
+
+--------------------------------------------------------------------
+2. ROTAÇÃO DE JWT_SECRET
+--------------------------------------------------------------------
+
+Problema:
+  O JWT era assinado com uma única chave secreta (JWT_SECRET). Se essa
+  chave fosse comprometida, todos os tokens (atuais e futuros) poderiam
+  ser forjados. Não havia suporte a troca de chave sem invalidar todos
+  os tokens de uma vez.
+
+Solução:
+  - O JwtService agora aceita dois modos:
+      * Simétrico (HS256): usa JWT_SECRET diretamente.
+      * Assimétrico (RS256/ES256): usa JWT_PRIVATE_KEY e JWT_PUBLIC_KEY.
+  - Durante a assinatura, tenta usar privateKey primeiro; se não
+    disponível, cai para secret.
+  - Durante a verificação, tenta publicKey primeiro; se não disponível,
+    cai para secret novamente.
+  - O algoritmo é configurável via JWT_ALGORITHM (default HS256).
+
+Isso permite:
+  - Trocar o JWT_SECRET sem downtime: tokens antigos continuam válidos
+    até expirarem, novos tokens usam a nova chave.
+  - Migrar para chave assimétrica (RS256) simplesmente setando as
+    variáveis JWT_PRIVATE_KEY/JWT_PUBLIC_KEY.
+
+Arquivos modificados:
+  src/auth/auth.service.ts     (MODIFICADO)
+  .env.example                 (MODIFICADO)
+  .env.test                    (MODIFICADO)
+
+--------------------------------------------------------------------
+3. HASH DE REFRESH TOKENS
+--------------------------------------------------------------------
+
+Problema:
+  Os refresh tokens eram armazenados em plaintext no banco de dados.
+  Se o banco fosse comprometido, todos os refresh tokens seriam
+  expostos, permitindo que um atacante mantivesse sessões ativas
+  indefinidamente.
+
+Solução:
+  - O refresh token é hashado com SHA-256 antes de ser armazenado.
+  - A comparação na validação também é feita sobre o hash.
+  - O token plaintext só é retornado para o cliente no momento da
+    criação; nunca é logado ou persistido.
+
+Arquivos modificados:
+  src/auth/auth.service.ts     (MODIFICADO)
+
+--------------------------------------------------------------------
+4. ROTAÇÃO DE REFRESH TOKENS
+--------------------------------------------------------------------
+
+Problema:
+  O refresh token era reutilizável indefinidamente. Se um token fosse
+  vazado, o atacante podia usá-lo para gerar novos access tokens sem
+  que o usuário original perdesse acesso.
+
+Solução:
+  - Cada vez que o cliente usa o endpoint /auth/refresh:
+      1. O token antigo é validado e DELETADO do banco.
+      2. Um NOVO refresh token é gerado e armazenado.
+      3. O novo token é retornado no cookie.
+  - Isso segue a prática recomendada pela RFC 6749 (OAuth 2.0) e
+    pelo OWASP.
+
+Arquivos modificados:
+  src/auth/auth.service.ts     (MODIFICADO)
+
+--------------------------------------------------------------------
+5. PADRONIZAÇÃO DE RESPOSTAS DA API
+--------------------------------------------------------------------
+
+Problema:
+  As respostas da API não seguiam um formato consistente. Alguns
+  endpoints retornavam { data, message }, outros apenas o objeto,
+  outros mensagens soltas. Isso dificultava o tratamento de erros
+  no frontend e escondia informações de debug em produção.
+
+Solução:
+  - Criado ResponseInterceptor (implements NestInterceptor) que
+    envolve toda resposta de sucesso em:
+      {
+        "status": "success",
+        "message": "Operação realizada com sucesso",
+        "data": <retorno original do controller>
+      }
+    Se o controller já retornar { data, message }, respeita o
+    message original. Se retornar um array, inclui meta com total.
+  - Criado PrismaExceptionFilter consolidado que captura erros
+    do Prisma (P2002, P2025, etc.) e retorna:
+      {
+        "status": "error",
+        "message": "mensagem amigável",
+        "data": null
+      }
+    Sem vazar detalhes internos do banco.
+
+Arquivos criados/modificados:
+  src/common/interceptors/response.interceptor.ts     (CRIADO)
+  src/common/filters/prisma-exception.filter.ts       (CRIADO - substitui versão anterior)
+
+--------------------------------------------------------------------
+6. CONSOLIDAÇÃO DE FILTROS DE EXCEÇÃO
+--------------------------------------------------------------------
+
+Problema:
+  Existiam dois PrismaExceptionFilter: um em src/common/filters/ e
+  outro em src/auth/filters/. O segundo não era mais usado, mas o
+  código permanecia, causando confusão.
+
+Solução:
+  - Removido src/auth/filters/prisma-exception.filter.ts.
+  - Mantido apenas o filtro em src/common/filters/, que é
+    registrado globalmente no AppModule.
+
+Arquivos removidos:
+  src/auth/filters/prisma-exception.filter.ts          (REMovIDO)
+
+--------------------------------------------------------------------
+7. CRON JOB DE EQUIPAMENTOS INATIVOS
+--------------------------------------------------------------------
+
+Problema:
+  Equipamentos sem movimentação por longos períodos não geravam
+  nenhum alerta. O administrador só descobria a inatividade
+  manualmente, consultando relatórios.
+
+Solução:
+  - Criado CronService com schedule @daily (rodas todos os dias
+    às 00:00).
+  - Consulta equipamentos cuja última movimentação (tabela equipment_movements)
+    seja anterior a 90 dias (configurável via EQUIPMENT_INACTIVITY_DAYS).
+  - Busca todos os usuários com role ADMIN no banco.
+  - Envia e-mail para cada admin com a lista de equipamentos inativos.
+  - Se não houver admins cadastrados, apenas loga um aviso.
+
+Arquivos criados/modificados:
+  src/cron/cron.service.ts               (CRIADO)
+  src/cron/cron.module.ts                 (CRIADO)
+  src/app.module.ts                       (MODIFICADO)
+  .env.example                            (MODIFICADO)
+
+--------------------------------------------------------------------
+8. HARDCODED SECRETS → ENVIRONMENT VARIABLES
+--------------------------------------------------------------------
+
+Problema:
+  Algumas configurações usavam valores fixos no código-fonte ou
+  dependiam de variáveis de ambiente não documentadas.
+
+Solução:
+  - Garantido que JWT_SECRET, DATABASE_URL, e demais secrets são
+    lidos exclusivamente de process.env.
+  - Atualizado .env.example com todas as variáveis necessárias e
+    comentários explicativos.
+  - Atualizado .env.test para corresponder ao schema atual.
+  - Confirmado que .env e .git estão em .gitignore e .dockerignore.
+
+Variáveis documentadas:
+  DATABASE_URL, JWT_SECRET, JWT_PRIVATE_KEY, JWT_PUBLIC_KEY,
+  JWT_ALGORITHM, JWT_ACCESS_EXPIRES_IN, JWT_REFRESH_EXPIRES_IN,
+  PORT, EQUIPMENT_INACTIVITY_DAYS, MAIL_HOST, MAIL_PORT,
+  MAIL_USER, MAIL_PASS, MAIL_FROM, UPLOAD_DIR
+
+--------------------------------------------------------------------
+9. VARREDURA DE SEGURANÇA
+--------------------------------------------------------------------
+
+Itens verificados e considerados ok:
+  - .env está em .gitignore → não vaza para o repositório.
+  - .git está em .dockerignore → não vaza para a imagem Docker.
+  - Nenhum endpoint de debug (/debug, /_debug, /info, /health)
+    encontrado nos controllers.
+  - Nenhuma rota que exponha dados sensíveis sem autenticação
+    além dos endpoints de auth (signup, signin, refresh, logout).
+  - PrismaExceptionFilter não vaza stack traces ou detalhes
+    internos do banco para o cliente.
+  - Refresh tokens são hashados (SHA-256) no banco.
+  - Refresh tokens são rotacionados a cada uso.
+  - Rate limiting ativo em todos os endpoints.
+--------------------------------------------------------------------

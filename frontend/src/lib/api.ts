@@ -49,17 +49,13 @@ api.interceptors.response.use(
     const isRefreshRoute = originalRequest.url?.includes('/auth/refresh');
     const alreadyRetried = originalRequest._retry;
     
-    // ✅ NOVO: Ignora refresh automático em rotas públicas de auth
-    const isPublicAuthRoute = 
-      originalRequest.url?.includes('/auth/signin') || 
+    const isPublicAuthRoute =
+      originalRequest.url?.includes('/auth/signin') ||
       originalRequest.url?.includes('/auth/signup');
 
-    // ❌ se não for caso de retry → só rejeita
     if (!is401 || isRefreshRoute || isPublicAuthRoute || alreadyRetried) {
-      return Promise.reject(error); // ✅ Agora rejeita com o erro ORIGINAL do login
+      return Promise.reject(error);
     }
-
-    // ... resto do código de refresh (mantém igual)
     if (isRefreshing) {
       return new Promise((resolve, reject) => {
         failedQueue.push({ resolve, reject });

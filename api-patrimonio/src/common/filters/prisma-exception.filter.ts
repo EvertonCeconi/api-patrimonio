@@ -3,56 +3,49 @@ import {
   Catch,
   ExceptionFilter,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { Response } from 'express';
 
 @Catch(Prisma.PrismaClientKnownRequestError)
 export class PrismaExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(PrismaExceptionFilter.name);
+
   catch(exception: Prisma.PrismaClientKnownRequestError, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
 
-    console.error('[PrismaExceptionFilter]', {
-      code: exception.code,
-      message: exception.message,
-      meta: exception.meta,
-    });
+    this.logger.error(`Prisma error code=${exception.code}`, exception.message);
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Internal server error';
-    let error = 'Internal Server Error';
+    let message = 'Erro interno do servidor';
 
     switch (exception.code) {
       case 'P2002': {
         status = HttpStatus.CONFLICT;
-        error = 'Conflict';
-
-        const cause = (exception.meta?.driverAdapterError as any)?.cause;
+        const cause = (exception.meta?.driverAdapterError as { cause?: { originalMessage?: string } })?.cause;
         const constraint: string = cause?.originalMessage ?? '';
-
-        // extrai o nome do campo do constraint, ex: "equipments_serialNumber_key"
         const match = constraint.match(/"equipments_(.+)_key"/);
-        message = match ? match[1] : 'unknown';
+        message = match
+          ? `Já existe um registro com esse ${match[1]}`
+          : 'Conflito de registro duplicado';
         break;
       }
       case 'P2025':
         status = HttpStatus.NOT_FOUND;
-        message = 'Record not found';
-        error = 'Not Found';
+        message = 'Registro não encontrado';
         break;
-
       case 'P2003':
         status = HttpStatus.BAD_REQUEST;
-        message = 'Foreign key constraint failed';
-        error = 'Bad Request';
+        message = 'Registro relacionado não encontrado';
         break;
     }
 
     return response.status(status).json({
+      status: 'error',
       message,
-      error,
-      statusCode: status,
+      data: null,
     });
   }
 }
