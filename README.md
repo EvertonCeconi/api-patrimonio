@@ -9,12 +9,12 @@ Sistema de controle de patrimônio com API NestJS, frontend React e banco de dad
 ```
 Controle_patrimonial/
 ├── api-patrimonio/        # Backend NestJS
-├── frontend/              # Frontend React + Vite
+├── frontend/              # Frontend React + Vite (com nginx.conf embutido)
 ├── .env.example           # Variáveis do docker-compose (Postgres)
 ├── docker-compose.yml     # Ambiente de desenvolvimento
 ├── docker-compose.prod.yml# Ambiente de produção
-├── nginx.conf             # Configuração do nginx (produção)
 ├── deploy.sh              # Script de deploy
+├── .github/workflows/     # CI com GitHub Actions
 └── tsconfig.json          # Project references TypeScript
 ```
 
@@ -121,10 +121,9 @@ docker exec -it api_patrimonio npx prisma db seed
 
 O script automaticamente:
 1. Atualiza o código via `git pull`
-2. Builda o frontend e gera o `dist/`
-3. Builda e sobe os containers de produção
-4. Roda as migrations do Prisma
-5. Limpa imagens Docker antigas
+2. Builda e sobe todos os containers (API + Frontend com nginx)
+3. Aguarda a API responder via healthcheck
+4. Limpa imagens Docker antigas
 
 ---
 
@@ -153,7 +152,7 @@ O script automaticamente:
 
 ```
 internet
-    └── nginx (porta 80)
+    └── frontend (nginx, porta 80)
             ├── /        → serve o React (dist/ estático)
             └── /api/*   → proxy para api:3000 (NestJS)
                               └── postgres:5432 (PostgreSQL)

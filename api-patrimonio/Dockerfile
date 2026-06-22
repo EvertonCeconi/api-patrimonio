@@ -31,7 +31,7 @@ RUN npm run build
 # ─── Production ────────────────────────────────
 FROM node:20-alpine AS production
 
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl netcat-openbsd
 
 WORKDIR /app
 
