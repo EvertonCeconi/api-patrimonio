@@ -1,4 +1,4 @@
-import { IsOptional, IsInt, Min, Max, IsEnum, IsString } from 'class-validator';
+import { IsOptional, IsInt, Min, Max, IsEnum, IsString, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 import { Estado } from '@prisma/client';
 
@@ -20,10 +20,11 @@ export class PaginationDto {
   @Max(100, {
     context: { max: 100 },
   })
-  limit: number = 10;
+  limit: number = 50;
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   search?: string;
 
   @IsOptional()

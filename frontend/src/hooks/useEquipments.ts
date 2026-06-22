@@ -53,3 +53,32 @@ export function useDeleteEquipment() {
     },
   });
 }
+
+export function useExportEquipmentsCsv() {
+  return useMutation({
+    mutationFn: (filters: EquipmentFilters) => equipmentService.exportCsv(filters),
+  });
+}
+
+export function useExportEquipmentsXlsx() {
+  return useMutation({
+    mutationFn: (filters: EquipmentFilters) => equipmentService.exportXlsx(filters),
+  });
+}
+
+export function useImportPreview() {
+  return useMutation({
+    mutationFn: ({ file, mode }: { file: File; mode: 'upsert' | 'insert' }) =>
+      equipmentService.importPreview(file, mode),
+  });
+}
+
+export function useImportConfirm() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (token: string) => equipmentService.importConfirm(token),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: EQUIPMENT_KEYS.all });
+    },
+  });
+}

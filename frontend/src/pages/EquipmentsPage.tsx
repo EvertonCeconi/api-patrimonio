@@ -5,6 +5,7 @@ import { EstadoBadge } from '@/components/ui/EstadoBadge';
 import { Pagination } from '@/components/ui/Pagination';
 import { Modal } from '@/components/ui/Modal';
 import { EquipmentForm } from '@/components/equipments/EquipmentForm';
+import { EquipmentImportExport } from '@/components/equipments/EquipmentImportExport';
 import type { Equipment, EquipmentFilters, EquipmentPayload, Estado } from '@/types';
 
 const ESTADOS_FILTER: { value: Estado | ''; label: string }[] = [
@@ -19,7 +20,7 @@ export function EquipmentsPage() {
   const user = useAuthStore((s) => s.user);
   const isAdmin = user?.role === 'ADMIN';
 
-  const [filters, setFilters] = useState<EquipmentFilters>({ page: 1, limit: 10 });
+  const [filters, setFilters] = useState<EquipmentFilters>({ page: 1 });
   const [search, setSearch] = useState('');
 
   const { data, isLoading, isError } = useEquipments(filters);
@@ -28,9 +29,10 @@ export function EquipmentsPage() {
   const deleteMutation  = useDeleteEquipment();
 
   // Modal state
-  const [createOpen, setCreateOpen]     = useState(false);
-  const [editTarget, setEditTarget]     = useState<Equipment | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<Equipment | null>(null);
+  const [createOpen, setCreateOpen]          = useState(false);
+  const [editTarget, setEditTarget]          = useState<Equipment | null>(null);
+  const [deleteTarget, setDeleteTarget]      = useState<Equipment | null>(null);
+  const [importExportOpen, setImportExportOpen] = useState(false);
 
   const updateMutation = useUpdateEquipment(editTarget?.id ?? '');
 
@@ -69,12 +71,20 @@ export function EquipmentsPage() {
             {data?.meta.total ?? '–'} equipamento{data?.meta.total !== 1 ? 's' : ''} cadastrado{data?.meta.total !== 1 ? 's' : ''}
           </p>
         </div>
-        <button onClick={() => setCreateOpen(true)} className="btn-primary">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Novo equipamento
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setImportExportOpen(true)} className="btn-secondary">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            {isAdmin ? 'Exportar / Importar' : 'Exportar'}
+          </button>
+          <button onClick={() => setCreateOpen(true)} className="btn-primary">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Novo equipamento
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -224,6 +234,13 @@ export function EquipmentsPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Modal — Exportar / Importar */}
+      <EquipmentImportExport
+        open={importExportOpen}
+        onClose={() => setImportExportOpen(false)}
+        filters={filters}
+      />
     </div>
   );
 }
