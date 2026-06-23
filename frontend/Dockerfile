@@ -8,9 +8,9 @@ RUN npm install
 
 COPY . .
 
-EXPOSE 5173
+EXPOSE 5170
 
-CMD ["npm", "run", "dev", "--", "--host"]
+CMD ["npm", "run", "dev", "--", "--host", "--port", "5170"]
 
 # ─── Builder ───────────────────────────────────
 FROM node:20-alpine AS builder

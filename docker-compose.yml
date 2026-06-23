@@ -36,10 +36,12 @@ services:
       - /app/node_modules
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      target: development
     container_name: frontend_patrimonio
     ports:
-      - "5173:5173"
+      - "5170:5170"
     volumes:
       - ./frontend:/app
       - /app/node_modules
