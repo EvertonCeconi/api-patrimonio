@@ -26,7 +26,7 @@ export function ConfirmDelete({ user, onConfirm, onCancel, loading, error }: Con
         <button
           onClick={onConfirm}
           disabled={loading}
-          className="btn-primary bg-red-600 hover:bg-red-700 focus:ring-red-500 min-w-[100px] justify-center"
+          className="btn-danger min-w-[100px] justify-center"
         >
           {loading ? 'Excluindo...' : 'Excluir'}
         </button>

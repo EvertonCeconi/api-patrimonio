@@ -8,11 +8,12 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto, UpdateUserDto, UserPaginationDto } from './dtos/admin';
+import { buildPaginationMeta } from '../common/utils/pagination';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AdminService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
   private async getFirstAdminId(): Promise<string | null> {
     const firstAdmin = await this.prismaService.user.findFirst({
@@ -23,7 +24,6 @@ export class AdminService {
     return firstAdmin?.id ?? null;
   }
 
-  // ─── Busca usuário e INCLUI o hash da senha (essencial para validação) ────
   async findUserById(id: string) {
     const user = await this.prismaService.user.findUnique({
       where: { id },
@@ -92,15 +92,8 @@ export class AdminService {
 
     return {
       data,
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-        hasNextPage: page * limit < total,
-        hasPreviousPage: page > 1,
-      },
-      message: data.length === 0 ? 'No records found' : undefined,
+      meta: buildPaginationMeta(total, page, limit),
+      message: data.length === 0 ? 'Nenhum registro encontrado' : undefined,
     };
   }
 

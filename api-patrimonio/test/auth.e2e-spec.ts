@@ -16,8 +16,9 @@ describe('Auth (e2e)', () => {
   };
 
   const getCookie = (res: request.Response) => {
-    const raw = res.headers['set-cookie'] as string[];
-    return raw?.[0]?.split(';')[0];
+    const raw = res.headers['set-cookie'];
+    const cookie = Array.isArray(raw) ? raw[0] : raw;
+    return cookie?.split(';')[0];
   };
 
   beforeAll(async () => {

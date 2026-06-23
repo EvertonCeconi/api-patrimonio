@@ -9,12 +9,12 @@ Sistema de controle de patrimônio com API NestJS, frontend React e banco de dad
 ```
 Controle_patrimonial/
 ├── api-patrimonio/        # Backend NestJS
-├── frontend/              # Frontend React + Vite
+├── frontend/              # Frontend React + Vite (com nginx.conf embutido)
 ├── .env.example           # Variáveis do docker-compose (Postgres)
 ├── docker-compose.yml     # Ambiente de desenvolvimento
 ├── docker-compose.prod.yml# Ambiente de produção
-├── nginx.conf             # Configuração do nginx (produção)
-├── deploy.sh              # Script de deploy
+├── deploy.sh              # Script de deploy automatizado
+├── .github/workflows/     # CI (lint, testes, build Docker)
 └── tsconfig.json          # Project references TypeScript
 ```
 
@@ -23,9 +23,10 @@ Controle_patrimonial/
 ## Pré-requisitos
 
 - [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
+- [Docker Compose](https://docs.docker.com/compose/install/) (comando `docker compose` v2)
 - [Node.js 20+](https://nodejs.org/) (apenas para desenvolvimento local fora do Docker)
 - [Git](https://git-scm.com/)
+- Servidor Linux com Docker instalado (para deploy em produção)
 
 ---
 
@@ -35,7 +36,7 @@ Controle_patrimonial/
 
 ```bash
 git clone https://github.com/EvertonCeconi/api-patrimonio.git
-cd Controle_patrimonial
+cd api-patrimonio   # ou Controle_patrimonial se tiver renomeado
 ```
 
 ### 2. Configure as variáveis de ambiente
@@ -96,7 +97,7 @@ docker-compose down
 ```bash
 # 1. Clone o repositório
 git clone https://github.com/EvertonCeconi/api-patrimonio.git
-cd Controle_patrimonial
+cd api-patrimonio   # ou Controle_patrimonial se tiver renomeado
 
 # 2. Configure os .env com valores de produção
 cp .env.example .env
@@ -110,8 +111,12 @@ chmod +x deploy.sh
 ./deploy.sh
 
 # 5. Apenas no primeiro deploy — cria o admin inicial
-docker exec -it api_patrimonio npx prisma db seed
+docker exec api_patrimonio npx prisma db seed
 ```
+
+| Papel | Email | Senha |
+|---|---|---|
+| Admin | `admin@empresa.com` | `senha123` |
 
 ### Deploys seguintes
 
@@ -121,10 +126,9 @@ docker exec -it api_patrimonio npx prisma db seed
 
 O script automaticamente:
 1. Atualiza o código via `git pull`
-2. Builda o frontend e gera o `dist/`
-3. Builda e sobe os containers de produção
-4. Roda as migrations do Prisma
-5. Limpa imagens Docker antigas
+2. Builda e sobe todos os containers (API + Frontend com nginx)
+3. Aguarda a API responder via healthcheck (`GET /api/health`)
+4. Limpa imagens Docker antigas
 
 ---
 
@@ -152,11 +156,66 @@ O script automaticamente:
 ## Arquitetura de produção
 
 ```
-internet
-    └── nginx (porta 80)
+internet / load balancer
+    └── frontend (nginx, porta 80)
             ├── /        → serve o React (dist/ estático)
-            └── /api/*   → proxy para api:3000 (NestJS)
+            └── /api/*   → proxy reverso para api:3000 (NestJS)
                               └── postgres:5432 (PostgreSQL)
+```
+
+CI/CD (GitHub Actions):
+- `lint-typecheck` → API e Frontend
+- `test-api` → testes de integração com PostgreSQL
+- `docker-build` → build das imagens de produção
+
+---
+
+---
+
+## Troubleshooting
+
+### Container da API reinicia toda hora
+
+Veja os logs para identificar o erro:
+
+```bash
+docker logs api_patrimonio --tail 50
+```
+
+Problemas comuns:
+- **Banco de dados**: confirme que o PostgreSQL está saudável (`docker ps`) e a `DATABASE_URL` está correta no `api-patrimonio/.env`
+- **Porta ocupada**: verifique se a porta 80 não está em uso no servidor
+
+### Frontend carrega mas API retorna 502
+
+O nginx pode estar com a configuração de proxy incorreta. Verifique:
+
+```bash
+curl -sf http://localhost/api/health
+```
+
+Se falhar, entre no container e teste direto:
+
+```bash
+docker exec frontend_patrimonio curl -sf http://api:3000/health
+```
+
+### Seed não roda
+
+```bash
+docker exec api_patrimonio npx prisma db seed
+```
+
+O seed cria o usuário admin (idempotente — pode rodar várias vezes).
+
+### CI falhando no GitHub Actions
+
+- Confirme que as secrets `POSTGRES_USER`, `POSTGRES_PASSWORD` e `POSTGRES_DB` estão configuradas no repositório (apenas se usar serviço externo)
+- Para build local das imagens:
+
+```bash
+docker build --target production -t api-patrimonio ./api-patrimonio
+docker build --target builder -t frontend-patrimonio ./frontend
 ```
 
 ---
