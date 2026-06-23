@@ -159,7 +159,7 @@ describe('Admin (e2e)', () => {
       await prisma.refreshToken.deleteMany();
       await prisma.user.deleteMany();
 
-      const res = await request(app.getHttpServer())
+      await request(app.getHttpServer())
         .get('/admin/users')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(401); // token inválido pois o usuário foi deletado — comportamento esperado

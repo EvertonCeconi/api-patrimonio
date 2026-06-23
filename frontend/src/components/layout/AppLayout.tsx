@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -40,9 +40,9 @@ export function AppLayout() {
     <div className="flex h-screen bg-surface-50">
       <aside className="w-60 shrink-0 bg-white border-r border-surface-100 flex flex-col">
         <div className="h-16 flex items-center px-5 border-b border-surface-100">
-          <span className="font-semibold text-surface-900 tracking-tight">
+          <Link to="/equipments" className="font-semibold text-surface-900 tracking-tight hover:text-brand-600 transition-colors">
             <span className="text-brand-600">Patri</span>mônio
-          </span>
+          </Link>
         </div>
 
         <nav className="flex-1 p-3 space-y-0.5">

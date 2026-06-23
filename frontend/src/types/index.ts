@@ -94,3 +94,20 @@ export interface ApiErrorResponse {
   statusCode?: number;
   error?: string;
 }
+
+export interface ImportResult {
+  total: number;
+  created: number;
+  updated: number;
+  errors: { row: number; message: string }[];
+}
+
+export interface ImportPreviewResult {
+  token: string;
+  total: number;
+  toCreate: number;
+  toUpdate: number;
+  toSkip: number;
+  errors: { row: number; message: string }[];
+  rows: { row: number; action: 'create' | 'update' | 'skip' | 'error'; message?: string }[];
+}

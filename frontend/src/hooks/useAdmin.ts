@@ -1,29 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { adminService } from '@/services/admin.service';
 import { useAuthStore } from '@/store/auth.store';
-import { translateError } from '@/lib/translateError';
+import { extractApiError } from '@/lib/extractError';
 import type { User, GetUsersParams, CreateUserPayload, UpdateUserPayload } from '@/services/admin.service';
 import type { PaginationMeta } from '@/types';
 
-function extractErrorMessage(err: unknown): string {
-  if (err && typeof err === 'object' && 'response' in err) {
-    const data = (err as { response?: { data?: unknown } }).response?.data;
-    if (data && typeof data === 'object') {
-      if ('errors' in data && Array.isArray((data as { errors: unknown[] }).errors)) {
-        const fieldErrors = (data as { errors: { field: string; code: string }[] }).errors;
-        return fieldErrors.map(translateError).join(', ');
-      }
-      if ('message' in data) {
-        const msg = (data as { message: string | string[] }).message;
-        if (Array.isArray(msg)) return msg.join(', ');
-        if (typeof msg === 'string') return msg;
-      }
-    }
-  }
-  return 'Erro inesperado. Tente novamente.';
-}
-
-const LIMIT = 10;
+const USERS_PAGE_LIMIT = 50;
+const MAX_ADMINS_TO_FETCH = 100;
 
 export function useAdmin() {
   const currentUserId = useAuthStore((s) => s.user?.id);
@@ -43,7 +26,7 @@ export function useAdmin() {
 
   const fetchFirstAdmin = useCallback(async () => {
     try {
-      const res = await adminService.getUsers({ role: 'ADMIN', limit: 100, page: 1 });
+      const res = await adminService.getUsers({ role: 'ADMIN', limit: MAX_ADMINS_TO_FETCH, page: 1 });
       if (res.data.length > 0) {
         const oldest = res.data.reduce((prev, curr) =>
           new Date(curr.createdAt) < new Date(prev.createdAt) ? curr : prev
@@ -59,7 +42,7 @@ export function useAdmin() {
     setListLoading(true);
     setListError(null);
     try {
-      const params: GetUsersParams = { page, limit: LIMIT };
+      const params: GetUsersParams = { page, limit: USERS_PAGE_LIMIT };
       if (search) params.search = search;
       if (roleFilter) params.role = roleFilter;
       if (activeFilter !== '') params.isActive = activeFilter === 'true';
@@ -67,7 +50,7 @@ export function useAdmin() {
       setUsers(res.data);
       setMeta(res.meta);
     } catch (err) {
-      setListError(extractErrorMessage(err));
+      setListError(extractApiError(err));
     } finally {
       setListLoading(false);
     }
@@ -93,7 +76,7 @@ export function useAdmin() {
       onSuccess();
       fetchUsers();
     } catch (err) {
-      setActionError(extractErrorMessage(err));
+      setActionError(extractApiError(err));
     } finally {
       setActionLoading(false);
     }
@@ -111,7 +94,7 @@ export function useAdmin() {
       onSuccess();
       fetchUsers();
     } catch (err) {
-      setActionError(extractErrorMessage(err));
+      setActionError(extractApiError(err));
     } finally {
       setActionLoading(false);
     }
@@ -125,7 +108,7 @@ export function useAdmin() {
       onSuccess();
       fetchUsers();
     } catch (err) {
-      setActionError(extractErrorMessage(err));
+      setActionError(extractApiError(err));
     } finally {
       setActionLoading(false);
     }
@@ -137,7 +120,7 @@ export function useAdmin() {
       await adminService.activateUser(user.id);
       fetchUsers();
     } catch (err) {
-      setListError(extractErrorMessage(err));
+      setListError(extractApiError(err));
     } finally {
       setInlineAction(null);
     }
@@ -149,7 +132,7 @@ export function useAdmin() {
       await adminService.promoteUser(user.id);
       fetchUsers();
     } catch (err) {
-      setListError(extractErrorMessage(err));
+      setListError(extractApiError(err));
     } finally {
       setInlineAction(null);
     }
