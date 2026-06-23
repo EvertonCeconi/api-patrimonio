@@ -24,7 +24,11 @@ export class PrismaExceptionFilter implements ExceptionFilter {
     switch (exception.code) {
       case 'P2002': {
         status = HttpStatus.CONFLICT;
-        const cause = (exception.meta?.driverAdapterError as { cause?: { originalMessage?: string } })?.cause;
+        const cause = (
+          exception.meta?.driverAdapterError as {
+            cause?: { originalMessage?: string };
+          }
+        )?.cause;
         const constraint: string = cause?.originalMessage ?? '';
         const match = constraint.match(/"equipments_(.+)_key"/);
         message = match

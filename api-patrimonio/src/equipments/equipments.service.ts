@@ -1,11 +1,21 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { EquipmentDto } from './dtos/equipment.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateEquipmentDto } from './dtos/update-equipment.dto';
 import { PaginationDto } from './dtos/pagination.dto';
 import { Prisma, Estado } from '@prisma/client';
 import { buildPaginationMeta } from '../common/utils/pagination';
-import type { RowAction, RowSummary, ImportPreviewResult, ImportResult } from '../common/utils/import-types';
+import type {
+  RowAction,
+  RowSummary,
+  ImportPreviewResult,
+  ImportResult,
+} from '../common/utils/import-types';
 import * as XLSX from 'xlsx';
 import { randomBytes } from 'crypto';
 
@@ -31,12 +41,32 @@ type SanitizedRow = {
 export class EquipmentsService {
   private readonly logger = new Logger(EquipmentsService.name);
 
-  private readonly VALID_STATUSES: Estado[] = ['ESTOQUE', 'CLIENTE', 'MANUTENCAO', 'RETIRADA_PECAS'];
+  private readonly VALID_STATUSES: Estado[] = [
+    'ESTOQUE',
+    'CLIENTE',
+    'MANUTENCAO',
+    'RETIRADA_PECAS',
+  ];
   private readonly MAX_ROWS = 500;
   private readonly MAX_FIELD_LENGTH = 255;
   private readonly MAX_DESC_LENGTH = 1000;
-  private readonly REQUIRED_COLUMNS = ['name', 'model', 'assetTag', 'serialNumber', 'location'];
-  private readonly EXPORT_COLUMNS = ['name', 'model', 'assetTag', 'serialNumber', 'ipAddress', 'location', 'status', 'description'];
+  private readonly REQUIRED_COLUMNS = [
+    'name',
+    'model',
+    'assetTag',
+    'serialNumber',
+    'location',
+  ];
+  private readonly EXPORT_COLUMNS = [
+    'name',
+    'model',
+    'assetTag',
+    'serialNumber',
+    'ipAddress',
+    'location',
+    'status',
+    'description',
+  ];
   private readonly stagedImports = new Map<string, StagedImport>();
   private readonly STAGE_TTL = 10 * 60 * 1000;
 
@@ -75,7 +105,12 @@ export class EquipmentsService {
     const where = this.buildWhereFromQuery(query);
 
     const [data, total] = await this.prisma.$transaction([
-      this.prisma.equipment.findMany({ where, skip, take: limit, orderBy: { createdAt: 'desc' } }),
+      this.prisma.equipment.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
       this.prisma.equipment.count({ where }),
     ]);
 
@@ -86,7 +121,9 @@ export class EquipmentsService {
     };
   }
 
-  private buildWhereFromQuery(query: PaginationDto): Prisma.EquipmentWhereInput {
+  private buildWhereFromQuery(
+    query: PaginationDto,
+  ): Prisma.EquipmentWhereInput {
     const { search, status } = query;
 
     return {
@@ -105,7 +142,9 @@ export class EquipmentsService {
     };
   }
 
-  async exportCsv(query: PaginationDto): Promise<{ buffer: Buffer; filename: string }> {
+  async exportCsv(
+    query: PaginationDto,
+  ): Promise<{ buffer: Buffer; filename: string }> {
     const equipments = await this.prisma.equipment.findMany({
       where: this.buildWhereFromQuery(query),
       orderBy: { createdAt: 'desc' },
@@ -125,10 +164,15 @@ export class EquipmentsService {
     );
 
     const csvContent = '\uFEFF' + header + '\n' + rows.join('\n');
-    return { buffer: Buffer.from(csvContent, 'utf-8'), filename: 'equipamentos.csv' };
+    return {
+      buffer: Buffer.from(csvContent, 'utf-8'),
+      filename: 'equipamentos.csv',
+    };
   }
 
-  async exportXlsx(query: PaginationDto): Promise<{ buffer: Buffer; filename: string }> {
+  async exportXlsx(
+    query: PaginationDto,
+  ): Promise<{ buffer: Buffer; filename: string }> {
     const equipments = await this.prisma.equipment.findMany({
       where: this.buildWhereFromQuery(query),
       orderBy: { createdAt: 'desc' },
@@ -151,7 +195,10 @@ export class EquipmentsService {
     return { buffer, filename: 'equipamentos.xlsx' };
   }
 
-  async importPreview(file: Express.Multer.File, mode: 'upsert' | 'insert' = 'upsert'): Promise<ImportPreviewResult> {
+  async importPreview(
+    file: Express.Multer.File,
+    mode: 'upsert' | 'insert' = 'upsert',
+  ): Promise<ImportPreviewResult> {
     let records: Record<string, string>[] = [];
 
     try {
@@ -165,7 +212,9 @@ export class EquipmentsService {
     }
 
     if (records.length > this.MAX_ROWS) {
-      throw new BadRequestException(`Arquivo excede o limite de ${this.MAX_ROWS} linhas`);
+      throw new BadRequestException(
+        `Arquivo excede o limite de ${this.MAX_ROWS} linhas`,
+      );
     }
 
     const errors: { row: number; message: string }[] = [];
@@ -209,17 +258,32 @@ export class EquipmentsService {
     }
 
     const token = randomBytes(16).toString('hex');
-    this.stagedImports.set(token, { records, filename: file.originalname, createdAt: Date.now(), mode });
+    this.stagedImports.set(token, {
+      records,
+      filename: file.originalname,
+      createdAt: Date.now(),
+      mode,
+    });
 
     setTimeout(() => this.stagedImports.delete(token), this.STAGE_TTL);
 
-    return { token, total: records.length, toCreate, toUpdate, toSkip, errors, rows };
+    return {
+      token,
+      total: records.length,
+      toCreate,
+      toUpdate,
+      toSkip,
+      errors,
+      rows,
+    };
   }
 
   async importConfirm(token: string): Promise<ImportResult> {
     const staged = this.stagedImports.get(token);
     if (!staged) {
-      throw new BadRequestException('Token inválido ou expirado. Faça o preview novamente.');
+      throw new BadRequestException(
+        'Token inválido ou expirado. Faça o preview novamente.',
+      );
     }
 
     this.stagedImports.delete(token);
@@ -259,7 +323,8 @@ export class EquipmentsService {
         }
       } catch (err: unknown) {
         if (!errors.some((e) => e.row === row)) {
-          const message = err instanceof Error ? err.message : 'Erro inesperado';
+          const message =
+            err instanceof Error ? err.message : 'Erro inesperado';
           errors.push({ row, message });
         }
       }
@@ -299,7 +364,10 @@ export class EquipmentsService {
       if (!this.hasChanges(sanitized, bySerial)) {
         return { action: 'skip', record: { id: bySerial.id } };
       }
-      return { action: 'error', message: `serialNumber "${sanitized.serialNumber}" já cadastrado` };
+      return {
+        action: 'error',
+        message: `serialNumber "${sanitized.serialNumber}" já cadastrado`,
+      };
     }
 
     if (!this.hasChanges(sanitized, bySerial)) {
@@ -309,7 +377,10 @@ export class EquipmentsService {
     return { action: 'update', record: { id: bySerial.id } };
   }
 
-  private hasChanges(sanitized: SanitizedRow, existing: Record<string, unknown>): boolean {
+  private hasChanges(
+    sanitized: SanitizedRow,
+    existing: Record<string, unknown>,
+  ): boolean {
     for (const key of Object.keys(sanitized) as (keyof SanitizedRow)[]) {
       const incoming = sanitized[key] ?? null;
       const current = existing[key] ?? null;
@@ -323,26 +394,36 @@ export class EquipmentsService {
     const mime = file.mimetype;
 
     const allowedCsvMimes = ['text/csv', 'application/vnd.ms-excel'];
-    const allowedXlsxMimes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+    const allowedXlsxMimes = [
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ];
 
     const isCsv = ext === 'csv' && allowedCsvMimes.includes(mime);
     const isXlsx = ext === 'xlsx' && allowedXlsxMimes.includes(mime);
 
     if (!isCsv && !isXlsx) {
-      throw new BadRequestException('Tipo de arquivo não suportado. Use .csv ou .xlsx');
+      throw new BadRequestException(
+        'Tipo de arquivo não suportado. Use .csv ou .xlsx',
+      );
     }
 
     const raw: Record<string, string>[] = isCsv
       ? this.parseWorkbook(file.buffer, true)
       : this.parseWorkbook(file.buffer, false);
 
-    return raw.map(this.normalizeRow);
+    return raw.map((row) => this.normalizeRow(row));
   }
 
-  private parseWorkbook(buffer: Buffer, raw: boolean): Record<string, string>[] {
+  private parseWorkbook(
+    buffer: Buffer,
+    raw: boolean,
+  ): Record<string, string>[] {
     const workbook = XLSX.read(buffer, { type: 'buffer', raw });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    return XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '', raw: false });
+    return XLSX.utils.sheet_to_json<Record<string, string>>(sheet, {
+      defval: '',
+      raw: false,
+    });
   }
 
   private normalizeRow(row: Record<string, string>): Record<string, string> {
@@ -377,7 +458,8 @@ export class EquipmentsService {
         return errors;
       }
 
-      const maxLen = key === 'description' ? this.MAX_DESC_LENGTH : this.MAX_FIELD_LENGTH;
+      const maxLen =
+        key === 'description' ? this.MAX_DESC_LENGTH : this.MAX_FIELD_LENGTH;
       if (val.length > maxLen) {
         errors.push(`${key} excede ${maxLen} caracteres`);
         return errors;
@@ -393,7 +475,9 @@ export class EquipmentsService {
 
     if (record.status && record.status.trim()) {
       if (!this.VALID_STATUSES.includes(record.status as Estado)) {
-        errors.push(`Status inválido: ${record.status}. Valores: ${this.VALID_STATUSES.join(', ')}`);
+        errors.push(
+          `Status inválido: ${record.status}. Valores: ${this.VALID_STATUSES.join(', ')}`,
+        );
         return errors;
       }
     }
@@ -427,6 +511,7 @@ export class EquipmentsService {
   }
 
   private hasControlCharacters(val: string): boolean {
+    // eslint-disable-next-line no-control-regex
     return /[\x00-\x08\x0B\x0C\x0E-\x1F]/.test(val);
   }
 
