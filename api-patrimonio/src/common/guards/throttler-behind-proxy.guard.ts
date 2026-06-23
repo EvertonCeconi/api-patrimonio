@@ -1,10 +1,13 @@
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { Injectable, ExecutionContext } from '@nestjs/common';
+import { Request } from 'express';
 
 @Injectable()
 export class ThrottlerBehindProxyGuard extends ThrottlerGuard {
-  protected async getTracker(req: Record<string, any>): Promise<string> {
-    return req.ips?.length ? req.ips[0] : req.ip;
+  protected getTracker(req: Request): Promise<string> {
+    return Promise.resolve(
+      req.ips?.length ? (req.ips[0] ?? '') : (req.ip ?? ''),
+    );
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {

@@ -33,7 +33,11 @@ export class AuthController {
   ) {
     const result = await this.authService.signIn(body);
 
-    res.cookie('refresh_token', result.refresh_token, refreshTokenCookieOptions());
+    res.cookie(
+      'refresh_token',
+      result.refresh_token,
+      refreshTokenCookieOptions(),
+    );
 
     return {
       access_token: result.access_token,
@@ -68,7 +72,11 @@ export class AuthController {
 
     const result = await this.authService.refreshToken(refreshToken);
 
-    res.cookie('refresh_token', result.refresh_token, refreshTokenCookieOptions());
+    res.cookie(
+      'refresh_token',
+      result.refresh_token,
+      refreshTokenCookieOptions(),
+    );
 
     return {
       access_token: result.access_token,

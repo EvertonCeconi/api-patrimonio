@@ -62,3 +62,6 @@ docker-compose.override.yml
 # Prisma
 prisma/migrations/dev.db
 /generated/prisma
+
+# Documentation (notas internas, não vão para o repo)
+documentation/

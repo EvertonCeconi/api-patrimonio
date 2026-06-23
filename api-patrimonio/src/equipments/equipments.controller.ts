@@ -58,7 +58,10 @@ export class EquipmentsController {
   @Get('export/xlsx')
   async exportXlsx(@Query() query: PaginationDto, @Res() res: Response) {
     const { buffer, filename } = await this.equipmentService.exportXlsx(query);
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(buffer);
   }
@@ -73,7 +76,10 @@ export class EquipmentsController {
       fileFilter: (_req, file, cb) => {
         const ext = file.originalname.split('.').pop()?.toLowerCase();
         if (ext !== 'csv' && ext !== 'xlsx') {
-          return cb(new BadRequestException('Formato não suportado. Use .csv ou .xlsx'), false);
+          return cb(
+            new BadRequestException('Formato não suportado. Use .csv ou .xlsx'),
+            false,
+          );
         }
         cb(null, true);
       },

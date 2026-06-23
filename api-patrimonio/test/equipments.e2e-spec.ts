@@ -25,7 +25,7 @@ describe('Equipments (e2e)', () => {
     password: '12345678',
   };
 
-  const equipmentPayload = {
+  const equipmentPayload: Record<string, unknown> = {
     name: 'Notebook Dell',
     location: 'Estoque Principal',
     assetTag: 'PAT-001',
@@ -285,7 +285,7 @@ describe('Equipments (e2e)', () => {
       expect(res.body.meta.totalPages).toBe(0);
       expect(res.body.message).toBe('Nenhum equipamento encontrado');
     });
-  
+
     it('✅ deve listar equipamentos com paginação padrão', async () => {
       await createEquipment();
 
@@ -746,7 +746,9 @@ describe('Equipments (e2e)', () => {
       expect(res.headers['content-type']).toContain('text/csv');
       expect(res.headers['content-disposition']).toContain('equipamentos.csv');
       expect(res.text).toContain('\ufeff');
-      expect(res.text).toContain('name;model;assetTag;serialNumber;ipAddress;location;status;description');
+      expect(res.text).toContain(
+        'name;model;assetTag;serialNumber;ipAddress;location;status;description',
+      );
     });
 
     it('✅ deve exportar CSV com equipamentos', async () => {
@@ -766,7 +768,11 @@ describe('Equipments (e2e)', () => {
     });
 
     it('✅ deve respeitar filtro de status no CSV', async () => {
-      await createEquipment({ name: 'Em Estoque', assetTag: 'PAT-CSV-1', serialNumber: 'SN-CSV-2' });
+      await createEquipment({
+        name: 'Em Estoque',
+        assetTag: 'PAT-CSV-1',
+        serialNumber: 'SN-CSV-2',
+      });
       await createEquipment({
         name: 'Em Manutencao',
         assetTag: 'PAT-CSV-2',
@@ -823,8 +829,16 @@ describe('Equipments (e2e)', () => {
     });
 
     it('✅ deve respeitar search no XLSX', async () => {
-      await createEquipment({ name: 'Encontravel', assetTag: 'PAT-XLSX-1', serialNumber: 'SN-XLSX-2' });
-      await createEquipment({ name: 'Outro', assetTag: 'PAT-XLSX-2', serialNumber: 'SN-XLSX-3' });
+      await createEquipment({
+        name: 'Encontravel',
+        assetTag: 'PAT-XLSX-1',
+        serialNumber: 'SN-XLSX-2',
+      });
+      await createEquipment({
+        name: 'Outro',
+        assetTag: 'PAT-XLSX-2',
+        serialNumber: 'SN-XLSX-3',
+      });
 
       const res = await request(app.getHttpServer())
         .get('/equipments/export/xlsx?search=Encontravel')
@@ -852,9 +866,19 @@ describe('Equipments (e2e)', () => {
 
   describe('POST /equipments/import', () => {
     function buildCsvBuffer(rows: Record<string, string>[]): Buffer {
-      const header = 'name;model;assetTag;serialNumber;location;ipAddress;status;description';
+      const header =
+        'name;model;assetTag;serialNumber;location;ipAddress;status;description';
       const data = rows.map((r) =>
-        ['name', 'model', 'assetTag', 'serialNumber', 'location', 'ipAddress', 'status', 'description']
+        [
+          'name',
+          'model',
+          'assetTag',
+          'serialNumber',
+          'location',
+          'ipAddress',
+          'status',
+          'description',
+        ]
           .map((k) => r[k] ?? '')
           .join(';'),
       );
@@ -879,7 +903,11 @@ describe('Equipments (e2e)', () => {
       return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
     }
 
-    async function previewAndConfirm(buffer: Buffer, filename: string, mode?: 'upsert' | 'insert') {
+    async function previewAndConfirm(
+      buffer: Buffer,
+      filename: string,
+      mode?: 'upsert' | 'insert',
+    ) {
       const req = request(app.getHttpServer())
         .post('/equipments/import/preview')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -916,10 +944,15 @@ describe('Equipments (e2e)', () => {
     });
 
     it('❌ deve negar preview a usuário comum (403)', async () => {
-      const buffer = buildCsvBuffer([{
-        name: 'Test', model: 'M1', assetTag: 'IMP-001',
-        serialNumber: 'SN-IMP-1', location: 'Local',
-      }]);
+      const buffer = buildCsvBuffer([
+        {
+          name: 'Test',
+          model: 'M1',
+          assetTag: 'IMP-001',
+          serialNumber: 'SN-IMP-1',
+          location: 'Local',
+        },
+      ]);
 
       await request(app.getHttpServer())
         .post('/equipments/import/preview')
@@ -939,10 +972,15 @@ describe('Equipments (e2e)', () => {
     // ── Preview ────────────────────────────────
 
     it('✅ preview retorna sumário com token para CSV', async () => {
-      const buffer = buildCsvBuffer([{
-        name: 'Preview CSV', model: 'M1', assetTag: 'IMP-PREV-1',
-        serialNumber: 'SN-PREV-1', location: 'Local',
-      }]);
+      const buffer = buildCsvBuffer([
+        {
+          name: 'Preview CSV',
+          model: 'M1',
+          assetTag: 'IMP-PREV-1',
+          serialNumber: 'SN-PREV-1',
+          location: 'Local',
+        },
+      ]);
 
       const res = await request(app.getHttpServer())
         .post('/equipments/import/preview')
@@ -960,10 +998,15 @@ describe('Equipments (e2e)', () => {
     });
 
     it('✅ preview retorna sumário para XLSX', async () => {
-      const buffer = buildXlsxBuffer([{
-        name: 'Preview XLSX', model: 'M2', assetTag: 'IMP-PREV-2',
-        serialNumber: 'SN-PREV-2', location: 'Escritório',
-      }]);
+      const buffer = buildXlsxBuffer([
+        {
+          name: 'Preview XLSX',
+          model: 'M2',
+          assetTag: 'IMP-PREV-2',
+          serialNumber: 'SN-PREV-2',
+          location: 'Escritório',
+        },
+      ]);
 
       const res = await request(app.getHttpServer())
         .post('/equipments/import/preview')
@@ -983,10 +1026,15 @@ describe('Equipments (e2e)', () => {
         name: 'Original',
       });
 
-      const buffer = buildCsvBuffer([{
-        name: 'Atualizado', model: 'M1', assetTag: 'IMP-PREV-UPDATE',
-        serialNumber: 'SN-PREV-UPDATE', location: 'Local',
-      }]);
+      const buffer = buildCsvBuffer([
+        {
+          name: 'Atualizado',
+          model: 'M1',
+          assetTag: 'IMP-PREV-UPDATE',
+          serialNumber: 'SN-PREV-UPDATE',
+          location: 'Local',
+        },
+      ]);
 
       const res = await request(app.getHttpServer())
         .post('/equipments/import/preview')
@@ -1000,10 +1048,15 @@ describe('Equipments (e2e)', () => {
     });
 
     it('❌ preview rejeita campos obrigatórios ausentes', async () => {
-      const buffer = buildCsvBuffer([{
-        name: '', model: 'M1', assetTag: 'IMP-MISS-1',
-        serialNumber: 'SN-MISS-1', location: 'Local',
-      }]);
+      const buffer = buildCsvBuffer([
+        {
+          name: '',
+          model: 'M1',
+          assetTag: 'IMP-MISS-1',
+          serialNumber: 'SN-MISS-1',
+          location: 'Local',
+        },
+      ]);
 
       const res = await request(app.getHttpServer())
         .post('/equipments/import/preview')
@@ -1017,10 +1070,16 @@ describe('Equipments (e2e)', () => {
     });
 
     it('❌ preview rejeita status inválido', async () => {
-      const buffer = buildCsvBuffer([{
-        name: 'Test', model: 'M1', assetTag: 'IMP-INV-1',
-        serialNumber: 'SN-INV-1', location: 'Local', status: 'INVALIDO',
-      }]);
+      const buffer = buildCsvBuffer([
+        {
+          name: 'Test',
+          model: 'M1',
+          assetTag: 'IMP-INV-1',
+          serialNumber: 'SN-INV-1',
+          location: 'Local',
+          status: 'INVALIDO',
+        },
+      ]);
 
       const res = await request(app.getHttpServer())
         .post('/equipments/import/preview')
@@ -1033,10 +1092,16 @@ describe('Equipments (e2e)', () => {
     });
 
     it('❌ preview rejeita IP inválido', async () => {
-      const buffer = buildCsvBuffer([{
-        name: 'Test', model: 'M1', assetTag: 'IMP-IP-1',
-        serialNumber: 'SN-IP-1', location: 'Local', ipAddress: '999.999.999.999',
-      }]);
+      const buffer = buildCsvBuffer([
+        {
+          name: 'Test',
+          model: 'M1',
+          assetTag: 'IMP-IP-1',
+          serialNumber: 'SN-IP-1',
+          location: 'Local',
+          ipAddress: '999.999.999.999',
+        },
+      ]);
 
       const res = await request(app.getHttpServer())
         .post('/equipments/import/preview')
@@ -1049,10 +1114,15 @@ describe('Equipments (e2e)', () => {
     });
 
     it('❌ preview rejeita fórmula injection (=)', async () => {
-      const buffer = buildCsvBuffer([{
-        name: '=CMD', model: 'M1', assetTag: 'IMP-FORM-1',
-        serialNumber: 'SN-FORM-1', location: 'Local',
-      }]);
+      const buffer = buildCsvBuffer([
+        {
+          name: '=CMD',
+          model: 'M1',
+          assetTag: 'IMP-FORM-1',
+          serialNumber: 'SN-FORM-1',
+          location: 'Local',
+        },
+      ]);
 
       const res = await request(app.getHttpServer())
         .post('/equipments/import/preview')
@@ -1084,9 +1154,28 @@ describe('Equipments (e2e)', () => {
 
     it('✅ preview erros são isolados por linha', async () => {
       const buffer = buildCsvBuffer([
-        { name: 'Valido', model: 'M1', assetTag: 'IMP-ISO-1', serialNumber: 'SN-ISO-1', location: 'Local' },
-        { name: 'Invalido', model: 'M2', assetTag: 'IMP-ISO-2', serialNumber: 'SN-ISO-2', location: 'Local', status: 'INVALIDO' },
-        { name: 'Valido2', model: 'M3', assetTag: 'IMP-ISO-3', serialNumber: 'SN-ISO-3', location: 'Local2' },
+        {
+          name: 'Valido',
+          model: 'M1',
+          assetTag: 'IMP-ISO-1',
+          serialNumber: 'SN-ISO-1',
+          location: 'Local',
+        },
+        {
+          name: 'Invalido',
+          model: 'M2',
+          assetTag: 'IMP-ISO-2',
+          serialNumber: 'SN-ISO-2',
+          location: 'Local',
+          status: 'INVALIDO',
+        },
+        {
+          name: 'Valido2',
+          model: 'M3',
+          assetTag: 'IMP-ISO-3',
+          serialNumber: 'SN-ISO-3',
+          location: 'Local2',
+        },
       ]);
 
       const res = await request(app.getHttpServer())
@@ -1122,11 +1211,18 @@ describe('Equipments (e2e)', () => {
     });
 
     it('✅ fluxo completo: preview → confirm cria registros (CSV)', async () => {
-      const buffer = buildCsvBuffer([{
-        name: 'Completo CSV', model: 'Modelo X', assetTag: 'IMP-FULL-1',
-        serialNumber: 'SN-FULL-1', location: 'Depósito',
-        ipAddress: '192.168.0.10', status: 'ESTOQUE', description: 'Criado via CSV',
-      }]);
+      const buffer = buildCsvBuffer([
+        {
+          name: 'Completo CSV',
+          model: 'Modelo X',
+          assetTag: 'IMP-FULL-1',
+          serialNumber: 'SN-FULL-1',
+          location: 'Depósito',
+          ipAddress: '192.168.0.10',
+          status: 'ESTOQUE',
+          description: 'Criado via CSV',
+        },
+      ]);
 
       const result = await previewAndConfirm(buffer, 'test.csv');
 
@@ -1135,17 +1231,24 @@ describe('Equipments (e2e)', () => {
       expect(result.updated).toBe(0);
       expect(result.errors).toEqual([]);
 
-      const eq = await prisma.equipment.findUnique({ where: { serialNumber: 'SN-FULL-1' } });
+      const eq = await prisma.equipment.findUnique({
+        where: { serialNumber: 'SN-FULL-1' },
+      });
       expect(eq).not.toBeNull();
       expect(eq!.name).toBe('Completo CSV');
     });
 
     it('✅ fluxo completo: preview → confirm cria registros (XLSX)', async () => {
-      const buffer = buildXlsxBuffer([{
-        name: 'Completo XLSX', model: 'Modelo Y', assetTag: 'IMP-FULL-2',
-        serialNumber: 'SN-FULL-2', location: 'Escritório',
-        status: 'MANUTENCAO',
-      }]);
+      const buffer = buildXlsxBuffer([
+        {
+          name: 'Completo XLSX',
+          model: 'Modelo Y',
+          assetTag: 'IMP-FULL-2',
+          serialNumber: 'SN-FULL-2',
+          location: 'Escritório',
+          status: 'MANUTENCAO',
+        },
+      ]);
 
       const result = await previewAndConfirm(buffer, 'test.xlsx');
 
@@ -1161,11 +1264,16 @@ describe('Equipments (e2e)', () => {
         name: 'Original',
       });
 
-      const buffer = buildCsvBuffer([{
-        name: 'Atualizado', model: 'Latitude 5420', assetTag: 'IMP-UPSERT-SN',
-        serialNumber: 'SN-UPSERT-SN', location: 'Novo Local',
-        status: 'MANUTENCAO',
-      }]);
+      const buffer = buildCsvBuffer([
+        {
+          name: 'Atualizado',
+          model: 'Latitude 5420',
+          assetTag: 'IMP-UPSERT-SN',
+          serialNumber: 'SN-UPSERT-SN',
+          location: 'Novo Local',
+          status: 'MANUTENCAO',
+        },
+      ]);
 
       const result = await previewAndConfirm(buffer, 'test.csv');
 
@@ -1173,7 +1281,9 @@ describe('Equipments (e2e)', () => {
       expect(result.created).toBe(0);
       expect(result.updated).toBe(1);
 
-      const eq = await prisma.equipment.findUnique({ where: { serialNumber: 'SN-UPSERT-SN' } });
+      const eq = await prisma.equipment.findUnique({
+        where: { serialNumber: 'SN-UPSERT-SN' },
+      });
       expect(eq!.name).toBe('Atualizado');
       expect(eq!.location).toBe('Novo Local');
       expect(eq!.status).toBe('MANUTENCAO');
@@ -1190,11 +1300,15 @@ describe('Equipments (e2e)', () => {
         },
       });
 
-      const buffer = buildCsvBuffer([{
-        name: 'Tentativa', model: 'M2',
-        assetTag: 'IMP-ASSET-CLASH', serialNumber: 'SN-ASSET-NEW',
-        location: 'Local Novo',
-      }]);
+      const buffer = buildCsvBuffer([
+        {
+          name: 'Tentativa',
+          model: 'M2',
+          assetTag: 'IMP-ASSET-CLASH',
+          serialNumber: 'SN-ASSET-NEW',
+          location: 'Local Novo',
+        },
+      ]);
 
       const result = await previewAndConfirm(buffer, 'test.csv');
 
@@ -1207,9 +1321,28 @@ describe('Equipments (e2e)', () => {
 
     it('✅ confirm respeita erros isolados por linha', async () => {
       const buffer = buildCsvBuffer([
-        { name: 'Valido', model: 'M1', assetTag: 'IMP-CONF-1', serialNumber: 'SN-CONF-1', location: 'Local' },
-        { name: 'Invalido', model: 'M2', assetTag: 'IMP-CONF-2', serialNumber: 'SN-CONF-2', location: 'Local', status: 'INVALIDO' },
-        { name: 'Valido2', model: 'M3', assetTag: 'IMP-CONF-3', serialNumber: 'SN-CONF-3', location: 'Local2' },
+        {
+          name: 'Valido',
+          model: 'M1',
+          assetTag: 'IMP-CONF-1',
+          serialNumber: 'SN-CONF-1',
+          location: 'Local',
+        },
+        {
+          name: 'Invalido',
+          model: 'M2',
+          assetTag: 'IMP-CONF-2',
+          serialNumber: 'SN-CONF-2',
+          location: 'Local',
+          status: 'INVALIDO',
+        },
+        {
+          name: 'Valido2',
+          model: 'M3',
+          assetTag: 'IMP-CONF-3',
+          serialNumber: 'SN-CONF-3',
+          location: 'Local2',
+        },
       ]);
 
       const result = await previewAndConfirm(buffer, 'test.csv');
@@ -1228,11 +1361,15 @@ describe('Equipments (e2e)', () => {
         location: 'Local',
       });
 
-      const buffer = buildCsvBuffer([{
-        name: 'Sem Mudança', model: 'M1',
-        assetTag: 'IMP-SKIP-TAG', serialNumber: 'SN-SKIP-1',
-        location: 'Local',
-      }]);
+      const buffer = buildCsvBuffer([
+        {
+          name: 'Sem Mudança',
+          model: 'M1',
+          assetTag: 'IMP-SKIP-TAG',
+          serialNumber: 'SN-SKIP-1',
+          location: 'Local',
+        },
+      ]);
 
       const res = await request(app.getHttpServer())
         .post('/equipments/import/preview')
@@ -1252,11 +1389,15 @@ describe('Equipments (e2e)', () => {
         name: 'Existente',
       });
 
-      const buffer = buildCsvBuffer([{
-        name: 'Tentativa Insert', model: 'M1',
-        assetTag: 'IMP-INSERT-NOVO', serialNumber: 'SN-INSERT-EXIST',
-        location: 'Local',
-      }]);
+      const buffer = buildCsvBuffer([
+        {
+          name: 'Tentativa Insert',
+          model: 'M1',
+          assetTag: 'IMP-INSERT-NOVO',
+          serialNumber: 'SN-INSERT-EXIST',
+          location: 'Local',
+        },
+      ]);
 
       const result = await previewAndConfirm(buffer, 'test.csv', 'insert');
 
