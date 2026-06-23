@@ -8,14 +8,16 @@ Sistema de controle de patrimônio com API NestJS, frontend React e banco de dad
 
 ```
 Controle_patrimonial/
-├── api-patrimonio/        # Backend NestJS
-├── frontend/              # Frontend React + Vite (com nginx.conf embutido)
-├── .env.example           # Variáveis do docker-compose (Postgres)
-├── docker-compose.yml     # Ambiente de desenvolvimento
-├── docker-compose.prod.yml# Ambiente de produção
-├── deploy.sh              # Script de deploy automatizado
-├── .github/workflows/     # CI (lint, testes, build Docker)
-└── tsconfig.json          # Project references TypeScript
+├── api-patrimonio/         # Backend NestJS
+├── frontend/               # Frontend React + Vite (com nginx.conf embutido)
+├── .env.example            # Variáveis do docker-compose (Postgres)
+├── .github/workflows/      # CI (lint, testes, build Docker)
+├── docker-compose.yml      # Ambiente de desenvolvimento
+├── docker-compose.prod.yml # Ambiente de produção
+├── Makefile                # Atalhos para comandos comuns
+├── deploy.sh               # Script de deploy automatizado
+├── scripts/                # Scripts auxiliares (backup, etc.)
+└── backups/                # Dumps do banco (gitignorado)
 ```
 
 ---
@@ -26,6 +28,7 @@ Controle_patrimonial/
 - [Docker Compose](https://docs.docker.com/compose/install/) (comando `docker compose` v2)
 - [Node.js 20+](https://nodejs.org/) (apenas para desenvolvimento local fora do Docker)
 - [Git](https://git-scm.com/)
+- [Make](https://www.gnu.org/software/make/) (`sudo apt install make` no Ubuntu/Debian)
 - Servidor Linux com Docker instalado (para deploy em produção)
 
 ---
@@ -36,7 +39,7 @@ Controle_patrimonial/
 
 ```bash
 git clone https://github.com/EvertonCeconi/api-patrimonio.git
-cd api-patrimonio   # ou Controle_patrimonial se tiver renomeado
+cd api-patrimonio
 ```
 
 ### 2. Configure as variáveis de ambiente
@@ -71,19 +74,18 @@ NODE_ENV=development
 ## Desenvolvimento
 
 ```bash
-# Subir todos os containers
-docker-compose up -d
+make dev
+```
 
-# Ver logs
-docker-compose logs -f
+Ou manualmente:
 
-# Parar os containers
-docker-compose down
+```bash
+docker compose up -d --build
 ```
 
 | Serviço | URL |
 |---|---|
-| Frontend | http://localhost:5173 |
+| Frontend | http://localhost:5170 |
 | API | http://localhost:3000 |
 | Prisma Studio | http://localhost:5555 |
 | Postgres | localhost:5432 |
@@ -92,12 +94,38 @@ docker-compose down
 
 ## Produção
 
+### Configurar acesso ao repositório (repo privado)
+
+No servidor, gere uma **deploy key** (SSH) para acesso read-only:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -N ""
+cat ~/.ssh/deploy_key.pub
+```
+
+Copie a saída e adicione no GitHub:
+**Settings > Deploy keys > Add deploy key** (marque "Allow write access" apenas se necessário).
+
+Crie `~/.ssh/config` no servidor:
+
+```
+Host github.com
+  IdentityFile ~/.ssh/deploy_key
+```
+
+Teste a conexão:
+
+```bash
+ssh -T git@github.com
+# Hi EvertonCeconi/api-patrimonio! You've successfully authenticated...
+```
+
 ### Primeiro deploy no servidor
 
 ```bash
-# 1. Clone o repositório
-git clone https://github.com/EvertonCeconi/api-patrimonio.git
-cd api-patrimonio   # ou Controle_patrimonial se tiver renomeado
+# 1. Clone o repositório (via SSH)
+git clone git@github.com:EvertonCeconi/api-patrimonio.git
+cd api-patrimonio
 
 # 2. Configure os .env com valores de produção
 cp .env.example .env
@@ -120,6 +148,8 @@ docker exec api_patrimonio npx prisma db seed
 
 ### Deploys seguintes
 
+Com a deploy key configurada, basta rodar:
+
 ```bash
 ./deploy.sh
 ```
@@ -129,6 +159,17 @@ O script automaticamente:
 2. Builda e sobe todos os containers (API + Frontend com nginx)
 3. Aguarda a API responder via healthcheck (`GET /api/health`)
 4. Limpa imagens Docker antigas
+
+### Comandos úteis (Makefile)
+
+```bash
+make logs       # Logs de todos containers
+make status     # Status dos containers
+make backup     # Backup manual do banco
+make restore FILE=patrimonio_20250101_030000.sql.gz
+make psql       # Shell interativo no PostgreSQL
+make down       # Parar todos containers
+```
 
 ---
 
@@ -156,19 +197,19 @@ O script automaticamente:
 ## Arquitetura de produção
 
 ```
-internet / load balancer
+internet / rede local
     └── frontend (nginx, porta 80)
             ├── /        → serve o React (dist/ estático)
             └── /api/*   → proxy reverso para api:3000 (NestJS)
                               └── postgres:5432 (PostgreSQL)
+Backup automátivo: pg_dump todo dia às 03:00 (container backup)
+Retenção: 30 dias
 ```
 
 CI/CD (GitHub Actions):
 - `lint-typecheck` → API e Frontend
 - `test-api` → testes de integração com PostgreSQL
 - `docker-build` → build das imagens de produção
-
----
 
 ---
 
