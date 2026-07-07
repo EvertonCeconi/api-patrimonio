@@ -4,14 +4,13 @@ import { PrismaService } from '../prisma/prisma.service';
 describe('EquipmentsService — import validation', () => {
   let service: EquipmentsService;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     const prisma = {} as PrismaService;
     service = new EquipmentsService(prisma);
   });
 
   describe('isValidIp', () => {
-    const isValidIp = (ip: string) =>
-      (service as any).isValidIp(ip) as boolean;
+    const isValidIp = (ip: string) => (service as any).isValidIp(ip) as boolean;
 
     it('deve aceitar IPs válidos', () => {
       expect(isValidIp('192.168.0.1')).toBe(true);

@@ -589,7 +589,7 @@ describe('Admin (e2e)', () => {
         .expect(400);
     });
 
-      it('admin não deve conseguir rebaixar a própria role', async () => {
+    it('admin não deve conseguir rebaixar a própria role', async () => {
       await request(app.getHttpServer())
         .patch(`/admin/users/${adminId}`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -625,7 +625,10 @@ describe('Admin (e2e)', () => {
 
       const raw = signinRes.headers['set-cookie'];
       const cookies = Array.isArray(raw) ? raw : [raw];
-      userRefreshToken = cookies.find((c: string) => c?.startsWith('refresh_token='))?.split(';')[0] ?? '';
+      userRefreshToken =
+        cookies
+          .find((c: string) => c?.startsWith('refresh_token='))
+          ?.split(';')[0] ?? '';
     });
 
     it('deve alterar a senha do usuário', async () => {

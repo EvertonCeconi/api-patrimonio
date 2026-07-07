@@ -1,5 +1,10 @@
 import { ThrottlerGuard } from '@nestjs/throttler';
-import { Injectable, ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  ExecutionContext,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { Request } from 'express';
 
 @Injectable()
@@ -10,7 +15,7 @@ export class ThrottlerBehindProxyGuard extends ThrottlerGuard {
     );
   }
 
-  protected async throwThrottlingException(): Promise<void> {
+  protected throwThrottlingException(): Promise<void> {
     throw new HttpException(
       {
         statusCode: HttpStatus.TOO_MANY_REQUESTS,

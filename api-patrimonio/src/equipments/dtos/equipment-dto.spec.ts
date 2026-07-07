@@ -128,7 +128,10 @@ describe('EquipmentDto', () => {
         ...validPayload,
         campoInvalido: 'valor',
       });
-      const errors = await validate(dto, { whitelist: true, forbidNonWhitelisted: true });
+      const errors = await validate(dto, {
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      });
       expect(errors).toHaveLength(1);
       expect(errors[0].property).toBe('campoInvalido');
     });

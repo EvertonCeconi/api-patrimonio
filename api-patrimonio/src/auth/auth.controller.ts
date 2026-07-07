@@ -88,10 +88,7 @@ export class AuthController {
   @Post('change-password')
   @UseGuards(JwtAuthGuard)
   @Throttle({ default: { ttl: 60000, limit: 3 } })
-  async changePassword(
-    @Req() req: Request,
-    @Body() body: ChangePasswordDto,
-  ) {
+  async changePassword(@Req() req: Request, @Body() body: ChangePasswordDto) {
     const user = req.user as { id: string };
     return this.authService.changePassword(user.id, body);
   }
