@@ -179,7 +179,10 @@ export class AuthService {
       );
     }
 
-    const isMatch = await bcrypt.compare(data.currentPassword, user.passwordHash);
+    const isMatch = await bcrypt.compare(
+      data.currentPassword,
+      user.passwordHash,
+    );
 
     if (!isMatch) {
       throw new UnauthorizedException('Senha atual inválida');

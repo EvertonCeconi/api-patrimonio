@@ -273,7 +273,16 @@ describe('Equipments (e2e)', () => {
       const header =
         'name;model;assetTag;serialNumber;location;ipAddress;status;description';
       const data = rows.map((r) =>
-        ['name', 'model', 'assetTag', 'serialNumber', 'location', 'ipAddress', 'status', 'description']
+        [
+          'name',
+          'model',
+          'assetTag',
+          'serialNumber',
+          'location',
+          'ipAddress',
+          'status',
+          'description',
+        ]
           .map((k) => r[k] ?? '')
           .join(';'),
       );
