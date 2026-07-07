@@ -22,9 +22,12 @@ api-patrimonio/     # API NestJS
 │   ├── auth/        # SignUp, SignIn, Logout, Refresh, ChangePassword
 │   ├── admin/       # CRUD de usuários (role ADMIN)
 │   ├── equipments/  # CRUD + import/export de equipamentos
+│   │   └── dtos/    # DTOs + unit tests de validação
 │   ├── prisma/      # PrismaService + PrismaModule
 │   └── common/      # Guards, Filters, Utils (cookie, pagination)
-└── test/            # Testes e2e (auth, admin, equipments)
+└── test/
+    ├── helpers/     # Factories (createAdmin, createRegularUser)
+    └── *.e2e-spec.ts  # E2E (auth, admin, equipments)
 frontend/            # Vite + React + TypeScript
 
 ## Modelo de Dados (Prisma)
@@ -40,6 +43,7 @@ frontend/            # Vite + React + TypeScript
 - Owner só pode ser editado por ele mesmo
 - Troca de senha (admin ou change-password) exige `currentPassword`
 - Change-password invalida TODOS os refresh tokens do usuário (força re-login)
+- Admin ao trocar senha de outro usuário via PATCH /admin/users/:id também invalida refresh tokens
 - Refresh token tem rotação (cada refresh gera novo par, invalida o anterior)
 - Single session: ao signin, todos os refresh tokens anteriores são deletados
 - Import de equipamentos em 2 fases: preview (retorna token) → confirm (aplica via token)
@@ -48,7 +52,7 @@ frontend/            # Vite + React + TypeScript
 
 - `JwtAuthGuard`: autenticação via `Authorization: Bearer <token>`, popula `req.user = { id, email, role }`
 - `RolesGuard`: autorização via decorator `@Roles(Role.ADMIN)` — lê `req.user.role`
-- `ThrottlerBehindProxyGuard`: rate limit global (60 req/min), **desligado em NODE_ENV=test**
+- `ThrottlerBehindProxyGuard`: rate limit global (60 req/min), **desligado em NODE_ENV=test**, retorna "Muitas requisições. Tente novamente mais tarde." em português
 
 ## Endpoints
 
@@ -97,8 +101,7 @@ make lint         # eslint api + frontend
 make typecheck    # tsc --noEmit api + frontend
 make logs         # logs de todos serviços
 make psql         # shell psql no banco
-Testes
-docker compose exec api npm run test:e2e
+make test         # unit + e2e (jest + jest --config test/jest-e2e.json --runInBand)
 Config: test/jest-e2e.json, setup carrega .env.test. beforeEach limpa banco (user, refreshToken).
 Convenções
 - DTOs com class-validator, contexts para mensagens de erro customizadas
