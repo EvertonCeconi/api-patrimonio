@@ -3,10 +3,11 @@ import {
   ConflictException,
   UnauthorizedException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
-import { SignInDto, SignUpDto } from './dtos/auth';
+import { SignInDto, SignUpDto, ChangePasswordDto } from './dtos/auth';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 
@@ -157,5 +158,45 @@ export class AuthService {
         role: user.role,
       },
     };
+  }
+
+  async changePassword(userId: string, data: ChangePasswordDto) {
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Usuário não encontrado');
+    }
+
+    if (!user.isActive) {
+      throw new ForbiddenException('Conta inativa');
+    }
+
+    if (data.currentPassword === data.newPassword) {
+      throw new BadRequestException(
+        'Nova senha deve ser diferente da senha atual',
+      );
+    }
+
+    const isMatch = await bcrypt.compare(data.currentPassword, user.passwordHash);
+
+    if (!isMatch) {
+      throw new UnauthorizedException('Senha atual inválida');
+    }
+
+    const passwordHash = await bcrypt.hash(data.newPassword, 10);
+
+    await this.prismaService.$transaction([
+      this.prismaService.user.update({
+        where: { id: userId },
+        data: { passwordHash },
+      }),
+      this.prismaService.refreshToken.deleteMany({
+        where: { userId },
+      }),
+    ]);
+
+    return { message: 'Senha alterada com sucesso' };
   }
 }

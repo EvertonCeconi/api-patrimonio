@@ -23,6 +23,10 @@ export const authService = {
     return data;
   },
 
+  async changePassword(payload: { currentPassword: string; newPassword: string }): Promise<void> {
+    await api.post('/auth/change-password', payload);
+  },
+
   async refreshWithLock(): Promise<AuthResponse> {
     if (!refreshPromise) {
       refreshPromise = this.refresh().finally(() => {

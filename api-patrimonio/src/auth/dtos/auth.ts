@@ -29,6 +29,26 @@ export class SignUpDto {
   password: string;
 }
 
+export class ChangePasswordDto {
+  @IsString()
+  @MinLength(8, {
+    context: { min: 8 },
+  })
+  @MaxLength(72, {
+    context: { max: 72 },
+  })
+  currentPassword: string;
+
+  @IsString()
+  @MinLength(8, {
+    context: { min: 8 },
+  })
+  @MaxLength(72, {
+    context: { max: 72 },
+  })
+  newPassword: string;
+}
+
 export class SignInDto {
   @IsEmail()
   @IsNotEmpty()
