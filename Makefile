@@ -2,7 +2,7 @@ COMPOSE_FILE = docker-compose.prod.yml
 
 COMPOSE_DEV_FILE = docker-compose.yml
 
-.PHONY: deploy logs backup restore psql lint typecheck help
+.PHONY: deploy logs backup restore psql test lint typecheck help
 
 dev: ## Start dev environment with hot-reload
 	docker compose -f $(COMPOSE_DEV_FILE) up -d --build
@@ -36,6 +36,10 @@ migrate: ## Run Prisma migrations
 
 seed: ## Run database seed
 	docker compose -f $(COMPOSE_FILE) exec api npm run seed
+
+test: ## Run all tests (unit + e2e)
+	docker compose -f $(COMPOSE_DEV_FILE) exec api npm test && \
+	docker compose -f $(COMPOSE_DEV_FILE) exec api npm run test:e2e
 
 lint: ## Run lint on API and frontend
 	cd api-patrimonio && npm run lint

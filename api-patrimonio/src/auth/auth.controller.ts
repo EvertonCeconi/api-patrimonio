@@ -5,11 +5,13 @@ import {
   Req,
   Res,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
-import { SignInDto, SignUpDto } from './dtos/auth';
+import { SignInDto, SignUpDto, ChangePasswordDto } from './dtos/auth';
 import { AuthService } from './auth.service';
+import { JwtAuthGuard } from './guards/jwt.guard';
 import {
   refreshTokenCookieOptions,
   clearRefreshTokenCookieOptions,
@@ -81,5 +83,16 @@ export class AuthController {
     return {
       access_token: result.access_token,
     };
+  }
+
+  @Post('change-password')
+  @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { ttl: 60000, limit: 3 } })
+  async changePassword(
+    @Req() req: Request,
+    @Body() body: ChangePasswordDto,
+  ) {
+    const user = req.user as { id: string };
+    return this.authService.changePassword(user.id, body);
   }
 }

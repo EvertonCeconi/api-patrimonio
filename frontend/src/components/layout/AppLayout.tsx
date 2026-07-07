@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/auth.store';
+import { ChangePasswordModal } from '@/components/auth/ChangePasswordModal';
 
 const navItems = [
   {
@@ -33,6 +35,7 @@ const adminItems = [
 export function AppLayout() {
   const { logout } = useAuth();
   const user = useAuthStore((s) => s.user);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
 
   const items = user?.role === 'ADMIN' ? [...navItems, ...adminItems] : navItems;
 
@@ -75,6 +78,16 @@ export function AppLayout() {
             </div>
           </div>
           <button
+            onClick={() => setPasswordModalOpen(true)}
+            className="btn-ghost w-full justify-start mb-1 text-surface-600 hover:text-brand-600 hover:bg-brand-50"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            Alterar senha
+          </button>
+          <button
             onClick={logout}
             className="btn-ghost w-full justify-start text-red-500 hover:bg-red-50 hover:text-red-600"
           >
@@ -90,6 +103,11 @@ export function AppLayout() {
       <main className="flex-1 overflow-y-auto">
         <Outlet />
       </main>
+
+      <ChangePasswordModal
+        open={passwordModalOpen}
+        onClose={() => setPasswordModalOpen(false)}
+      />
     </div>
   );
 }

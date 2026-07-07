@@ -179,6 +179,10 @@ export class AdminService {
     if (data.password) {
       updateData.passwordHash = await bcrypt.hash(data.password, 10);
       delete updateData.password;
+
+      await this.prismaService.refreshToken.deleteMany({
+        where: { userId: id },
+      });
     }
 
     return this.prismaService.user.update({
