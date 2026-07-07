@@ -85,7 +85,7 @@ docker compose up -d --build
 
 | Serviço | URL |
 |---|---|
-| Frontend | https://localhost:1010 |
+| Frontend | http://localhost:1010 |
 | API | http://localhost:3210 |
 | Prisma Studio | http://localhost:5555 |
 | Postgres | localhost:5432 |
@@ -210,7 +210,7 @@ make down       # Parar todos containers
 
 ```
 rede interna
-    └── frontend (nginx, porta 443 HTTPS, exposta como :1010)
+    └── frontend (nginx, porta 80, exposta como :1010)
             ├── /        → serve o React (dist/ estático)
             ├── /api/*   → proxy reverso para api:3000 (NestJS)
             │                 └── postgres:5432 (PostgreSQL)

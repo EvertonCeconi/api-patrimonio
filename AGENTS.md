@@ -89,6 +89,10 @@ frontend/            # Vite + React + TypeScript
 | PATCH | /admin/users/:id/promote | Promover para ADMIN |
 | DELETE | /admin/users/:id | Excluir |
 
+## Seed
+
+- Admin inicial: `admin@empresa.com` / `senha123`
+
 ## Comandos
 
 ```bash
