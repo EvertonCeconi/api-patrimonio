@@ -8,7 +8,7 @@ dev: ## Start dev environment with hot-reload
 	docker compose -f $(COMPOSE_DEV_FILE) up -d --build
 
 deploy: ## Build and restart all services
-	git pull origin main
+	if [ -d ".git" ]; then git pull origin main; fi
 	docker compose -f $(COMPOSE_FILE) up -d --build
 	docker image prune -f
 
