@@ -31,6 +31,12 @@ restore: ## Restore from a backup file (usage: make restore FILE=patrimonio_2025
 psql: ## Open a psql shell
 	docker compose -f $(COMPOSE_FILE) exec postgres psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
 
+migrate: ## Run Prisma migrations
+	docker compose -f $(COMPOSE_FILE) exec api npx prisma migrate deploy
+
+seed: ## Run database seed
+	docker compose -f $(COMPOSE_FILE) exec api npm run seed
+
 lint: ## Run lint on API and frontend
 	cd api-patrimonio && npm run lint
 	cd frontend && npm run lint
