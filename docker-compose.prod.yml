@@ -23,6 +23,8 @@ services:
       target: production
     container_name: api_patrimonio
     restart: always
+    ports:
+      - "3210:3000"
     env_file:
       - ./api-patrimonio/.env
     healthcheck:
@@ -42,7 +44,9 @@ services:
     container_name: frontend_patrimonio
     restart: always
     ports:
-      - "80:80"
+      - "1010:443"
+    volumes:
+      - ./nginx/certs:/etc/nginx/certs:ro
     depends_on:
       api:
         condition: service_started

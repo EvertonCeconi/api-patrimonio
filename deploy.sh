@@ -25,7 +25,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 log "Aguardando API responder..."
 for i in $(seq 1 30); do
-  if curl -sf http://localhost/api/health > /dev/null 2>&1; then
+  if curl -skf https://localhost:1010/api/health > /dev/null 2>&1; then
     log "API pronta!"
     break
   fi
@@ -38,5 +38,5 @@ docker image prune -f
 
 log "Deploy finalizado com sucesso!"
 echo ""
-echo -e "  ${GREEN}Frontend:${NC} http://$(hostname -I | awk '{print $1}')"
-echo -e "  ${GREEN}API:${NC}      http://$(hostname -I | awk '{print $1}')/api"
+echo -e "  ${GREEN}Frontend:${NC} https://$(hostname -I | awk '{print $1}'):1010"
+echo -e "  ${GREEN}API:${NC}      http://$(hostname -I | awk '{print $1}'):3210"
