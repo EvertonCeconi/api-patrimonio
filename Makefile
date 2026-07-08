@@ -2,13 +2,13 @@ COMPOSE_FILE = docker-compose.prod.yml
 
 COMPOSE_DEV_FILE = docker-compose.yml
 
-.PHONY: deploy logs backup restore psql lint typecheck help
+.PHONY: deploy logs backup restore psql test lint typecheck help
 
 dev: ## Start dev environment with hot-reload
 	docker compose -f $(COMPOSE_DEV_FILE) up -d --build
 
 deploy: ## Build and restart all services
-	git pull origin main
+	if [ -d ".git" ]; then git pull origin main; fi
 	docker compose -f $(COMPOSE_FILE) up -d --build
 	docker image prune -f
 
@@ -30,6 +30,16 @@ restore: ## Restore from a backup file (usage: make restore FILE=patrimonio_2025
 
 psql: ## Open a psql shell
 	docker compose -f $(COMPOSE_FILE) exec postgres psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+
+migrate: ## Run Prisma migrations
+	docker compose -f $(COMPOSE_FILE) exec api npx prisma migrate deploy
+
+seed: ## Run database seed
+	docker compose -f $(COMPOSE_FILE) exec api npm run seed
+
+test: ## Run all tests (unit + e2e)
+	docker compose -f $(COMPOSE_DEV_FILE) exec api npm test && \
+	docker compose -f $(COMPOSE_DEV_FILE) exec api npm run test:e2e
 
 lint: ## Run lint on API and frontend
 	cd api-patrimonio && npm run lint

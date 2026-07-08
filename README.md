@@ -85,8 +85,8 @@ docker compose up -d --build
 
 | Serviço | URL |
 |---|---|
-| Frontend | http://localhost:5170 |
-| API | http://localhost:3000 |
+| Frontend | http://localhost:1010 |
+| API | http://localhost:3210 |
 | Prisma Studio | http://localhost:5555 |
 | Postgres | localhost:5432 |
 
@@ -119,6 +119,18 @@ Teste a conexão:
 ssh -T git@github.com
 # Hi EvertonCeconi/api-patrimonio! You've successfully authenticated...
 ```
+
+### Gerar certificado TLS (auto-assinado para rede interna)
+
+```bash
+mkdir -p nginx/certs
+openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+  -keyout nginx/certs/privkey.pem \
+  -out nginx/certs/fullchain.pem \
+  -subj "/CN=seu-servidor-interno"
+```
+
+> Para certificado de CA interna, substitua pelos arquivos fornecidos pela sua equipe de infra.
 
 ### Primeiro deploy no servidor
 
@@ -157,7 +169,7 @@ Com a deploy key configurada, basta rodar:
 O script automaticamente:
 1. Atualiza o código via `git pull`
 2. Builda e sobe todos os containers (API + Frontend com nginx)
-3. Aguarda a API responder via healthcheck (`GET /api/health`)
+3. Aguarda a API responder via healthcheck (`GET /api/health` via HTTPS)
 4. Limpa imagens Docker antigas
 
 ### Comandos úteis (Makefile)
@@ -197,11 +209,13 @@ make down       # Parar todos containers
 ## Arquitetura de produção
 
 ```
-internet / rede local
-    └── frontend (nginx, porta 80)
+rede interna
+    └── frontend (nginx, porta 80, exposta como :1010)
             ├── /        → serve o React (dist/ estático)
-            └── /api/*   → proxy reverso para api:3000 (NestJS)
-                              └── postgres:5432 (PostgreSQL)
+            ├── /api/*   → proxy reverso para api:3000 (NestJS)
+            │                 └── postgres:5432 (PostgreSQL)
+            └── HTTP :80 → redireciona para HTTPS
+API também exposta diretamente na porta :3210 (para ferramentas externas)
 Backup automátivo: pg_dump todo dia às 03:00 (container backup)
 Retenção: 30 dias
 ```
