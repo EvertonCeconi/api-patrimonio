@@ -78,7 +78,13 @@ services:
       - "5555:5555"
     env_file:
       - ./api-patrimonio/.env
-    command: npx prisma studio --port 5555 --browser none
+    command: >
+      sh -c "
+        apk add --no-cache socat > /dev/null 2>&1 &&
+        npx prisma studio --port 5556 --browser none > /dev/null 2>&1 &
+        sleep 3 &&
+        socat TCP-LISTEN:5555,fork TCP:127.0.0.1:5556
+      "
     depends_on:
       postgres:
         condition: service_healthy
