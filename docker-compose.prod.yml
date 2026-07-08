@@ -21,8 +21,8 @@ services:
       target: production
     container_name: api_patrimonio
     restart: always
-    ports:
-      - "3210:3000"
+    # ports:
+    #   - "3210:3000"
     env_file:
       - ./api-patrimonio/.env
     healthcheck:
