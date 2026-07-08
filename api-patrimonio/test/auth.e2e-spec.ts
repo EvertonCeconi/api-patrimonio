@@ -15,10 +15,20 @@ describe('Auth (e2e)', () => {
     password: '12345678',
   };
 
-  const getCookie = (res: request.Response) => {
+  const getCookie = (res: request.Response, cookieName: string) => {
     const raw = res.headers['set-cookie'];
-    const cookie = Array.isArray(raw) ? raw[0] : raw;
-    return cookie?.split(';')[0];
+    const cookies = Array.isArray(raw) ? raw : [raw];
+    const found = cookies.find((c) => c?.startsWith(`${cookieName}=`));
+    if (!found) {
+      const names = cookies
+        .filter(Boolean)
+        .map((c) => c!.split('=')[0])
+        .join(', ');
+      throw new Error(
+        `Cookie "${cookieName}" não encontrado. Disponíveis: [${names || 'nenhum'}]`,
+      );
+    }
+    return found.split(';')[0];
   };
 
   beforeAll(async () => {
@@ -49,7 +59,16 @@ describe('Auth (e2e)', () => {
 
   // Helper: cria usuário já ativo
   async function createActiveUser(data = user) {
-    await request(app.getHttpServer()).post('/auth/signup').send(data);
+    const signupRes = await request(app.getHttpServer())
+      .post('/auth/signup')
+      .send(data);
+
+    if (signupRes.status !== 201) {
+      throw new Error(
+        `createActiveUser: signup esperava 201, recebeu ${signupRes.status}. Body: ${JSON.stringify(signupRes.body)}`,
+      );
+    }
+
     await prisma.user.update({
       where: { email: data.email },
       data: { isActive: true },
@@ -181,7 +200,7 @@ describe('Auth (e2e)', () => {
       .post('/auth/signin')
       .send({ email: user.email, password: user.password });
 
-    const cookie = getCookie(signinRes);
+    const cookie = getCookie(signinRes, 'refresh_token');
 
     const refreshRes = await request(app.getHttpServer())
       .post('/auth/refresh')
@@ -202,13 +221,13 @@ describe('Auth (e2e)', () => {
       .post('/auth/signin')
       .send({ email: user.email, password: user.password });
 
-    const firstCookie = getCookie(signinRes);
+    const firstCookie = getCookie(signinRes, 'refresh_token');
 
     const firstRefresh = await request(app.getHttpServer())
       .post('/auth/refresh')
       .set('Cookie', firstCookie);
 
-    const secondCookie = getCookie(firstRefresh);
+    const secondCookie = getCookie(firstRefresh, 'refresh_token');
 
     await request(app.getHttpServer())
       .post('/auth/refresh')
@@ -232,7 +251,7 @@ describe('Auth (e2e)', () => {
       .post('/auth/signin')
       .send({ email: user.email, password: user.password });
 
-    const cookie = getCookie(signinRes);
+    const cookie = getCookie(signinRes, 'refresh_token');
 
     await request(app.getHttpServer())
       .post('/auth/logout')
@@ -247,5 +266,102 @@ describe('Auth (e2e)', () => {
 
   it('✅ deve fazer logout mesmo sem cookie', async () => {
     await request(app.getHttpServer()).post('/auth/logout').expect(201);
+  });
+
+  // =========================
+  // CHANGE PASSWORD
+  // =========================
+
+  const getToken = async () => {
+    await createActiveUser();
+    const res = await request(app.getHttpServer())
+      .post('/auth/signin')
+      .send({ email: user.email, password: user.password });
+    return res.body.access_token as string;
+  };
+
+  it('✅ deve trocar a senha com sucesso', async () => {
+    const token = await getToken();
+
+    await request(app.getHttpServer())
+      .post('/auth/change-password')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ currentPassword: user.password, newPassword: 'novaSenha42' })
+      .expect(201);
+  });
+
+  it('✅ deve permitir login com a nova senha após troca', async () => {
+    const token = await getToken();
+
+    await request(app.getHttpServer())
+      .post('/auth/change-password')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ currentPassword: user.password, newPassword: 'novaSenha42' })
+      .expect(201);
+
+    const res = await request(app.getHttpServer())
+      .post('/auth/signin')
+      .send({ email: user.email, password: 'novaSenha42' })
+      .expect(201);
+
+    expect(res.body).toHaveProperty('access_token');
+  });
+
+  it('❌ deve falhar sem token de autenticação', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/change-password')
+      .send({ currentPassword: '12345678', newPassword: 'novaSenha42' })
+      .expect(401);
+  });
+
+  it('❌ deve falhar com senha atual inválida', async () => {
+    const token = await getToken();
+
+    await request(app.getHttpServer())
+      .post('/auth/change-password')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ currentPassword: 'senhaErrada', newPassword: 'novaSenha42' })
+      .expect(401);
+  });
+
+  it('❌ deve falhar se nova senha for igual à atual', async () => {
+    const token = await getToken();
+
+    await request(app.getHttpServer())
+      .post('/auth/change-password')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ currentPassword: user.password, newPassword: user.password })
+      .expect(400);
+  });
+
+  it('❌ deve falhar com newPassword muito curta', async () => {
+    const token = await getToken();
+
+    await request(app.getHttpServer())
+      .post('/auth/change-password')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ currentPassword: user.password, newPassword: '123' })
+      .expect(400);
+  });
+
+  it('❌ deve invalidar refresh tokens após troca de senha', async () => {
+    await createActiveUser();
+
+    const signinRes = await request(app.getHttpServer())
+      .post('/auth/signin')
+      .send({ email: user.email, password: user.password });
+
+    const cookie = getCookie(signinRes, 'refresh_token');
+
+    await request(app.getHttpServer())
+      .post('/auth/change-password')
+      .set('Authorization', `Bearer ${signinRes.body.access_token}`)
+      .send({ currentPassword: user.password, newPassword: 'novaSenha42' })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/auth/refresh')
+      .set('Cookie', cookie)
+      .expect(401);
   });
 });

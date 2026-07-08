@@ -100,6 +100,20 @@ export function useAdmin() {
     }
   };
 
+  const handleSetPassword = async (id: string, password: string, onSuccess: () => void) => {
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      await adminService.updateUser(id, { password });
+      onSuccess();
+      fetchUsers();
+    } catch (err) {
+      setActionError(extractApiError(err));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleDelete = async (id: string, onSuccess: () => void) => {
     setActionLoading(true);
     setActionError(null);
@@ -172,6 +186,7 @@ export function useAdmin() {
     // actions
     handleCreate,
     handleUpdate,
+    handleSetPassword,
     handleDelete,
     handleActivate,
     handlePromote,

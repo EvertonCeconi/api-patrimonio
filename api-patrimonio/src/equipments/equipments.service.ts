@@ -3,6 +3,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  OnModuleDestroy,
 } from '@nestjs/common';
 import { EquipmentDto } from './dtos/equipment.dto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -38,7 +39,7 @@ type SanitizedRow = {
 };
 
 @Injectable()
-export class EquipmentsService {
+export class EquipmentsService implements OnModuleDestroy {
   private readonly logger = new Logger(EquipmentsService.name);
 
   private readonly VALID_STATUSES: Estado[] = [
@@ -69,8 +70,16 @@ export class EquipmentsService {
   ];
   private readonly stagedImports = new Map<string, StagedImport>();
   private readonly STAGE_TTL = 10 * 60 * 1000;
+  private readonly stageTimeouts = new Map<string, NodeJS.Timeout>();
 
   constructor(private readonly prisma: PrismaService) {}
+
+  onModuleDestroy() {
+    for (const timeout of this.stageTimeouts.values()) {
+      clearTimeout(timeout);
+    }
+    this.stageTimeouts.clear();
+  }
 
   async create(dto: EquipmentDto) {
     return this.prisma.equipment.create({ data: dto });
@@ -265,7 +274,11 @@ export class EquipmentsService {
       mode,
     });
 
-    setTimeout(() => this.stagedImports.delete(token), this.STAGE_TTL);
+    const timeout = setTimeout(() => {
+      this.stagedImports.delete(token);
+      this.stageTimeouts.delete(token);
+    }, this.STAGE_TTL);
+    this.stageTimeouts.set(token, timeout);
 
     return {
       token,

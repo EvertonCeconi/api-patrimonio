@@ -4,29 +4,11 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
 import cookieParser from 'cookie-parser';
+import { createAdmin, createRegularUser } from './helpers/factories';
 
 describe('Admin (e2e)', () => {
   let app: INestApplication;
   let prisma: PrismaService;
-  let adminToken: string;
-  let userToken: string;
-  let userId: string;
-
-  const adminUser = {
-    name: 'Admin Teste',
-    email: 'admin@test.com',
-    password: '12345678',
-  };
-
-  const regularUser = {
-    name: 'Usuário Comum',
-    email: 'user@test.com',
-    password: '12345678',
-  };
-
-  // ─────────────────────────────────────────────
-  // SETUP
-  // ─────────────────────────────────────────────
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -45,47 +27,12 @@ describe('Admin (e2e)', () => {
     );
 
     await app.init();
-
     prisma = app.get(PrismaService);
   });
 
   beforeEach(async () => {
     await prisma.refreshToken.deleteMany();
     await prisma.user.deleteMany();
-
-    // Cria e promove o admin
-    await request(app.getHttpServer()).post('/auth/signup').send(adminUser);
-    await prisma.user.update({
-      where: { email: adminUser.email },
-      data: { role: 'ADMIN', isActive: true },
-    });
-    const adminRes = await request(app.getHttpServer())
-      .post('/auth/signin')
-      .send({ email: adminUser.email, password: adminUser.password });
-    adminToken = adminRes.body.access_token;
-
-    // Cria o usuário comum (inativo por padrão)
-    await request(app.getHttpServer()).post('/auth/signup').send(regularUser);
-    const userRecord = await prisma.user.findUnique({
-      where: { email: regularUser.email },
-    });
-    userId = userRecord!.id;
-
-    // Ativa para poder fazer login e obter token para testes de 403
-    await prisma.user.update({
-      where: { id: userId },
-      data: { isActive: true },
-    });
-    const userRes = await request(app.getHttpServer())
-      .post('/auth/signin')
-      .send({ email: regularUser.email, password: regularUser.password });
-    userToken = userRes.body.access_token;
-
-    // Volta para inativo para os testes de ativação fazerem sentido
-    await prisma.user.update({
-      where: { id: userId },
-      data: { isActive: false },
-    });
   });
 
   afterAll(async () => {
@@ -99,21 +46,25 @@ describe('Admin (e2e)', () => {
   // ─────────────────────────────────────────────
 
   describe('Proteção de rota', () => {
-    it('❌ deve retornar 401 sem token', async () => {
+    it('deve retornar 401 sem token', async () => {
       await request(app.getHttpServer()).get('/admin/users').expect(401);
     });
 
-    it('❌ deve retornar 403 para usuário comum', async () => {
+    it('deve retornar 403 para usuário comum', async () => {
+      const user = await createRegularUser(app);
+
       await request(app.getHttpServer())
         .get('/admin/users')
-        .set('Authorization', `Bearer ${userToken}`)
+        .set('Authorization', `Bearer ${user.token}`)
         .expect(403);
     });
 
-    it('✅ deve permitir acesso com token de ADMIN', async () => {
+    it('deve permitir acesso com token de ADMIN', async () => {
+      const admin = await createAdmin(app);
+
       await request(app.getHttpServer())
         .get('/admin/users')
-        .set('Authorization', `Bearer ${adminToken}`)
+        .set('Authorization', `Bearer ${admin.token}`)
         .expect(200);
     });
   });
@@ -123,7 +74,26 @@ describe('Admin (e2e)', () => {
   // ─────────────────────────────────────────────
 
   describe('GET /admin/users', () => {
-    it('✅ deve retornar estrutura paginada', async () => {
+    let adminToken: string;
+    let adminEmail: string;
+    let userEmail: string;
+
+    beforeEach(async () => {
+      const admin = await createAdmin(app);
+      adminToken = admin.token;
+      adminEmail = admin.user.email;
+
+      const user = await createRegularUser(app);
+      userEmail = user.user.email;
+
+      // Desativa o usuário após gerar o token (para testar filtro isActive)
+      await prisma.user.update({
+        where: { id: user.user.id },
+        data: { isActive: false },
+      });
+    });
+
+    it('deve retornar estrutura paginada', async () => {
       const res = await request(app.getHttpServer())
         .get('/admin/users')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -139,7 +109,7 @@ describe('Admin (e2e)', () => {
       });
     });
 
-    it('✅ deve retornar campos corretos por usuário', async () => {
+    it('deve retornar campos corretos por usuário', async () => {
       const res = await request(app.getHttpServer())
         .get('/admin/users')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -155,39 +125,38 @@ describe('Admin (e2e)', () => {
       expect(u).not.toHaveProperty('passwordHash');
     });
 
-    it('✅ deve retornar mensagem quando não há usuários', async () => {
+    it('deve retornar mensagem quando não há usuários', async () => {
       await prisma.refreshToken.deleteMany();
       await prisma.user.deleteMany();
 
       await request(app.getHttpServer())
         .get('/admin/users')
         .set('Authorization', `Bearer ${adminToken}`)
-        .expect(401); // token inválido pois o usuário foi deletado — comportamento esperado
-      // Recria o admin para os próximos testes não quebrarem
+        .expect(401);
     });
 
     describe('Filtros', () => {
-      it('✅ deve filtrar por search no name', async () => {
+      it('deve filtrar por search no name', async () => {
         const res = await request(app.getHttpServer())
           .get(`/admin/users?search=Usuário`)
           .set('Authorization', `Bearer ${adminToken}`)
           .expect(200);
 
         expect(res.body.data.length).toBe(1);
-        expect(res.body.data[0].email).toBe(regularUser.email);
+        expect(res.body.data[0].email).toBe(userEmail);
       });
 
-      it('✅ deve filtrar por search no email', async () => {
+      it('deve filtrar por search no email', async () => {
         const res = await request(app.getHttpServer())
           .get(`/admin/users?search=admin`)
           .set('Authorization', `Bearer ${adminToken}`)
           .expect(200);
 
         expect(res.body.data.length).toBe(1);
-        expect(res.body.data[0].email).toBe(adminUser.email);
+        expect(res.body.data[0].email).toBe(adminEmail);
       });
 
-      it('✅ deve filtrar por isActive=false', async () => {
+      it('deve filtrar por isActive=false', async () => {
         const res = await request(app.getHttpServer())
           .get('/admin/users?isActive=false')
           .set('Authorization', `Bearer ${adminToken}`)
@@ -197,7 +166,7 @@ describe('Admin (e2e)', () => {
         expect(res.body.data[0].isActive).toBe(false);
       });
 
-      it('✅ deve filtrar por isActive=true', async () => {
+      it('deve filtrar por isActive=true', async () => {
         const res = await request(app.getHttpServer())
           .get('/admin/users?isActive=true')
           .set('Authorization', `Bearer ${adminToken}`)
@@ -207,7 +176,7 @@ describe('Admin (e2e)', () => {
         expect(res.body.data[0].isActive).toBe(true);
       });
 
-      it('✅ deve filtrar por role=ADMIN', async () => {
+      it('deve filtrar por role=ADMIN', async () => {
         const res = await request(app.getHttpServer())
           .get('/admin/users?role=ADMIN')
           .set('Authorization', `Bearer ${adminToken}`)
@@ -217,7 +186,7 @@ describe('Admin (e2e)', () => {
         expect(res.body.data[0].role).toBe('ADMIN');
       });
 
-      it('✅ deve filtrar por role=USER', async () => {
+      it('deve filtrar por role=USER', async () => {
         const res = await request(app.getHttpServer())
           .get('/admin/users?role=USER')
           .set('Authorization', `Bearer ${adminToken}`)
@@ -227,7 +196,7 @@ describe('Admin (e2e)', () => {
         expect(res.body.data[0].role).toBe('USER');
       });
 
-      it('❌ deve rejeitar role inválida no filtro', async () => {
+      it('deve rejeitar role inválida no filtro', async () => {
         await request(app.getHttpServer())
           .get('/admin/users?role=SUPERADMIN')
           .set('Authorization', `Bearer ${adminToken}`)
@@ -237,7 +206,6 @@ describe('Admin (e2e)', () => {
 
     describe('Paginação', () => {
       beforeEach(async () => {
-        // Cria usuários extras para testar paginação
         for (let i = 0; i < 5; i++) {
           await request(app.getHttpServer())
             .post('/admin/users')
@@ -250,7 +218,7 @@ describe('Admin (e2e)', () => {
         }
       });
 
-      it('✅ deve respeitar o limit por página', async () => {
+      it('deve respeitar o limit por página', async () => {
         const res = await request(app.getHttpServer())
           .get('/admin/users?page=1&limit=3')
           .set('Authorization', `Bearer ${adminToken}`)
@@ -260,7 +228,7 @@ describe('Admin (e2e)', () => {
         expect(res.body.meta.limit).toBe(3);
       });
 
-      it('✅ deve navegar para a segunda página', async () => {
+      it('deve navegar para a segunda página', async () => {
         const res = await request(app.getHttpServer())
           .get('/admin/users?page=2&limit=3')
           .set('Authorization', `Bearer ${adminToken}`)
@@ -270,7 +238,7 @@ describe('Admin (e2e)', () => {
         expect(res.body.data.length).toBeGreaterThan(0);
       });
 
-      it('✅ deve retornar hasNextPage e hasPreviousPage corretamente', async () => {
+      it('deve retornar hasNextPage e hasPreviousPage corretamente', async () => {
         const res = await request(app.getHttpServer())
           .get('/admin/users?page=1&limit=3')
           .set('Authorization', `Bearer ${adminToken}`)
@@ -280,14 +248,14 @@ describe('Admin (e2e)', () => {
         expect(res.body.meta.hasPreviousPage).toBe(false);
       });
 
-      it('❌ deve rejeitar limit acima de 100', async () => {
+      it('deve rejeitar limit acima de 100', async () => {
         await request(app.getHttpServer())
           .get('/admin/users?limit=101')
           .set('Authorization', `Bearer ${adminToken}`)
           .expect(400);
       });
 
-      it('❌ deve rejeitar page menor que 1', async () => {
+      it('deve rejeitar page menor que 1', async () => {
         await request(app.getHttpServer())
           .get('/admin/users?page=0')
           .set('Authorization', `Bearer ${adminToken}`)
@@ -301,17 +269,27 @@ describe('Admin (e2e)', () => {
   // ─────────────────────────────────────────────
 
   describe('GET /admin/users/:id', () => {
-    it('✅ deve retornar usuário pelo ID', async () => {
+    let adminToken: string;
+    let userId: string;
+
+    beforeEach(async () => {
+      const admin = await createAdmin(app);
+      adminToken = admin.token;
+
+      const user = await createRegularUser(app);
+      userId = user.user.id;
+    });
+
+    it('deve retornar usuário pelo ID', async () => {
       const res = await request(app.getHttpServer())
         .get(`/admin/users/${userId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(200);
 
       expect(res.body.id).toBe(userId);
-      expect(res.body.email).toBe(regularUser.email);
     });
 
-    it('❌ deve retornar 404 para ID inexistente', async () => {
+    it('deve retornar 404 para ID inexistente', async () => {
       await request(app.getHttpServer())
         .get('/admin/users/id-que-nao-existe')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -324,7 +302,14 @@ describe('Admin (e2e)', () => {
   // ─────────────────────────────────────────────
 
   describe('POST /admin/users', () => {
-    it('✅ deve criar usuário com campos obrigatórios', async () => {
+    let adminToken: string;
+
+    beforeEach(async () => {
+      const admin = await createAdmin(app);
+      adminToken = admin.token;
+    });
+
+    it('deve criar usuário com campos obrigatórios', async () => {
       const res = await request(app.getHttpServer())
         .post('/admin/users')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -341,7 +326,7 @@ describe('Admin (e2e)', () => {
       expect(res.body).not.toHaveProperty('passwordHash');
     });
 
-    it('✅ deve criar usuário já ativo e com role ADMIN', async () => {
+    it('deve criar usuário já ativo e com role ADMIN', async () => {
       const res = await request(app.getHttpServer())
         .post('/admin/users')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -358,19 +343,29 @@ describe('Admin (e2e)', () => {
       expect(res.body.isActive).toBe(true);
     });
 
-    it('❌ deve falhar com email já existente', async () => {
+    it('deve falhar com email já existente', async () => {
       await request(app.getHttpServer())
         .post('/admin/users')
         .set('Authorization', `Bearer ${adminToken}`)
         .send({
           name: 'Duplicado',
-          email: regularUser.email,
+          email: 'user-ja-existente@test.com',
+          password: '12345678',
+        })
+        .expect(201);
+
+      await request(app.getHttpServer())
+        .post('/admin/users')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Duplicado',
+          email: 'user-ja-existente@test.com',
           password: '12345678',
         })
         .expect(409);
     });
 
-    it('❌ deve falhar sem o campo name', async () => {
+    it('deve falhar sem o campo name', async () => {
       await request(app.getHttpServer())
         .post('/admin/users')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -378,7 +373,7 @@ describe('Admin (e2e)', () => {
         .expect(400);
     });
 
-    it('❌ deve falhar com senha curta', async () => {
+    it('deve falhar com senha curta', async () => {
       await request(app.getHttpServer())
         .post('/admin/users')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -386,7 +381,7 @@ describe('Admin (e2e)', () => {
         .expect(400);
     });
 
-    it('❌ deve falhar com role inválida', async () => {
+    it('deve falhar com role inválida', async () => {
       await request(app.getHttpServer())
         .post('/admin/users')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -405,7 +400,22 @@ describe('Admin (e2e)', () => {
   // ─────────────────────────────────────────────
 
   describe('PATCH /admin/users/:id/activate', () => {
-    it('✅ deve ativar usuário inativo', async () => {
+    let adminToken: string;
+    let userToken: string;
+    let userId: string;
+    let userEmail: string;
+
+    beforeEach(async () => {
+      const admin = await createAdmin(app);
+      adminToken = admin.token;
+
+      const createdUser = await createRegularUser(app);
+      userToken = createdUser.token;
+      userId = createdUser.user.id;
+      userEmail = createdUser.user.email;
+    });
+
+    it('deve ativar usuário inativo', async () => {
       const res = await request(app.getHttpServer())
         .patch(`/admin/users/${userId}/activate`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -415,7 +425,7 @@ describe('Admin (e2e)', () => {
       expect(res.body.id).toBe(userId);
     });
 
-    it('✅ deve persistir isActive=true no banco', async () => {
+    it('deve persistir isActive=true no banco', async () => {
       await request(app.getHttpServer())
         .patch(`/admin/users/${userId}/activate`)
         .set('Authorization', `Bearer ${adminToken}`);
@@ -424,27 +434,27 @@ describe('Admin (e2e)', () => {
       expect(userInDb!.isActive).toBe(true);
     });
 
-    it('✅ usuário ativado deve conseguir fazer login', async () => {
+    it('usuário ativado deve conseguir fazer login', async () => {
       await request(app.getHttpServer())
         .patch(`/admin/users/${userId}/activate`)
         .set('Authorization', `Bearer ${adminToken}`);
 
       const res = await request(app.getHttpServer())
         .post('/auth/signin')
-        .send({ email: regularUser.email, password: regularUser.password })
+        .send({ email: userEmail, password: '12345678' })
         .expect(201);
 
       expect(res.body).toHaveProperty('access_token');
     });
 
-    it('❌ deve retornar 404 para ID inexistente', async () => {
+    it('deve retornar 404 para ID inexistente', async () => {
       await request(app.getHttpServer())
         .patch('/admin/users/id-invalido/activate')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
     });
 
-    it('❌ deve retornar 403 para usuário comum', async () => {
+    it('deve retornar 403 para usuário comum', async () => {
       await request(app.getHttpServer())
         .patch(`/admin/users/${userId}/activate`)
         .set('Authorization', `Bearer ${userToken}`)
@@ -457,7 +467,20 @@ describe('Admin (e2e)', () => {
   // ─────────────────────────────────────────────
 
   describe('PATCH /admin/users/:id/promote', () => {
-    it('✅ deve promover usuário para ADMIN', async () => {
+    let adminToken: string;
+    let userToken: string;
+    let userId: string;
+
+    beforeEach(async () => {
+      const admin = await createAdmin(app);
+      adminToken = admin.token;
+
+      const user = await createRegularUser(app);
+      userToken = user.token;
+      userId = user.user.id;
+    });
+
+    it('deve promover usuário para ADMIN', async () => {
       const res = await request(app.getHttpServer())
         .patch(`/admin/users/${userId}/promote`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -467,7 +490,7 @@ describe('Admin (e2e)', () => {
       expect(res.body.id).toBe(userId);
     });
 
-    it('✅ deve persistir role=ADMIN no banco', async () => {
+    it('deve persistir role=ADMIN no banco', async () => {
       await request(app.getHttpServer())
         .patch(`/admin/users/${userId}/promote`)
         .set('Authorization', `Bearer ${adminToken}`);
@@ -476,14 +499,14 @@ describe('Admin (e2e)', () => {
       expect(userInDb!.role).toBe('ADMIN');
     });
 
-    it('❌ deve retornar 404 para ID inexistente', async () => {
+    it('deve retornar 404 para ID inexistente', async () => {
       await request(app.getHttpServer())
         .patch('/admin/users/id-invalido/promote')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
     });
 
-    it('❌ deve retornar 403 para usuário comum', async () => {
+    it('deve retornar 403 para usuário comum', async () => {
       await request(app.getHttpServer())
         .patch(`/admin/users/${userId}/promote`)
         .set('Authorization', `Bearer ${userToken}`)
@@ -496,7 +519,22 @@ describe('Admin (e2e)', () => {
   // ─────────────────────────────────────────────
 
   describe('PATCH /admin/users/:id', () => {
-    it('✅ deve atualizar o name do usuário', async () => {
+    let adminToken: string;
+    let adminId: string;
+    let adminEmail: string;
+    let userId: string;
+
+    beforeEach(async () => {
+      const admin = await createAdmin(app);
+      adminToken = admin.token;
+      adminId = admin.user.id;
+      adminEmail = admin.user.email;
+
+      const user = await createRegularUser(app);
+      userId = user.user.id;
+    });
+
+    it('deve atualizar o name do usuário', async () => {
       const res = await request(app.getHttpServer())
         .patch(`/admin/users/${userId}`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -506,7 +544,7 @@ describe('Admin (e2e)', () => {
       expect(res.body.name).toBe('Nome Atualizado');
     });
 
-    it('✅ deve atualizar o email do usuário', async () => {
+    it('deve atualizar o email do usuário', async () => {
       const res = await request(app.getHttpServer())
         .patch(`/admin/users/${userId}`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -516,7 +554,7 @@ describe('Admin (e2e)', () => {
       expect(res.body.email).toBe('atualizado@test.com');
     });
 
-    it('✅ deve atualizar múltiplos campos de uma vez', async () => {
+    it('deve atualizar múltiplos campos de uma vez', async () => {
       const res = await request(app.getHttpServer())
         .patch(`/admin/users/${userId}`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -527,15 +565,15 @@ describe('Admin (e2e)', () => {
       expect(res.body.isActive).toBe(true);
     });
 
-    it('❌ deve falhar com email já em uso por outro usuário', async () => {
+    it('deve falhar com email já em uso por outro usuário', async () => {
       await request(app.getHttpServer())
         .patch(`/admin/users/${userId}`)
         .set('Authorization', `Bearer ${adminToken}`)
-        .send({ email: adminUser.email })
+        .send({ email: adminEmail })
         .expect(409);
     });
 
-    it('❌ deve retornar 404 para ID inexistente', async () => {
+    it('deve retornar 404 para ID inexistente', async () => {
       await request(app.getHttpServer())
         .patch('/admin/users/id-invalido')
         .set('Authorization', `Bearer ${adminToken}`)
@@ -543,7 +581,7 @@ describe('Admin (e2e)', () => {
         .expect(404);
     });
 
-    it('❌ deve rejeitar campos não permitidos', async () => {
+    it('deve rejeitar campos não permitidos', async () => {
       await request(app.getHttpServer())
         .patch(`/admin/users/${userId}`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -551,15 +589,121 @@ describe('Admin (e2e)', () => {
         .expect(400);
     });
 
-    it('❌ admin não deve conseguir rebaixar a própria role', async () => {
-      const adminRecord = await prisma.user.findUnique({
-        where: { email: adminUser.email },
-      });
-
+    it('admin não deve conseguir rebaixar a própria role', async () => {
       await request(app.getHttpServer())
-        .patch(`/admin/users/${adminRecord!.id}`)
+        .patch(`/admin/users/${adminId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .send({ role: 'USER' })
+        .expect(403);
+    });
+  });
+
+  // ─────────────────────────────────────────────
+  // PATCH /admin/users/:id — Password
+  // ─────────────────────────────────────────────
+
+  describe('PATCH /admin/users/:id — Password', () => {
+    let adminToken: string;
+    let adminId: string;
+    let userToken: string;
+    let userId: string;
+    let userRefreshToken: string;
+
+    beforeEach(async () => {
+      const admin = await createAdmin(app);
+      adminToken = admin.token;
+      adminId = admin.user.id;
+
+      // Cria usuário e mantém refresh token para testar invalidação
+      const user = await createRegularUser(app);
+      userId = user.user.id;
+      userToken = user.token;
+
+      const signinRes = await request(app.getHttpServer())
+        .post('/auth/signin')
+        .send({ email: user.user.email, password: user.user.password });
+
+      const raw = signinRes.headers['set-cookie'];
+      const cookies = Array.isArray(raw) ? raw : [raw];
+      userRefreshToken =
+        cookies
+          .find((c: string) => c?.startsWith('refresh_token='))
+          ?.split(';')[0] ?? '';
+    });
+
+    it('deve alterar a senha do usuário', async () => {
+      await request(app.getHttpServer())
+        .patch(`/admin/users/${userId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ password: 'novaSenha42' })
+        .expect(200);
+    });
+
+    it('deve permitir login com a nova senha', async () => {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+
+      await request(app.getHttpServer())
+        .patch(`/admin/users/${userId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ password: 'novaSenha42' })
+        .expect(200);
+
+      const loginRes = await request(app.getHttpServer())
+        .post('/auth/signin')
+        .send({ email: user!.email, password: 'novaSenha42' })
+        .expect(201);
+
+      expect(loginRes.body).toHaveProperty('access_token');
+    });
+
+    it('deve bloquear login com a senha antiga', async () => {
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+
+      await request(app.getHttpServer())
+        .patch(`/admin/users/${userId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ password: 'novaSenha42' })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .post('/auth/signin')
+        .send({ email: user!.email, password: '12345678' })
+        .expect(401);
+    });
+
+    it('deve invalidar refresh tokens do usuário após troca de senha', async () => {
+      await request(app.getHttpServer())
+        .patch(`/admin/users/${userId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ password: 'novaSenha42' })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .post('/auth/refresh')
+        .set('Cookie', userRefreshToken)
+        .expect(401);
+    });
+
+    it('deve falhar com senha curta', async () => {
+      await request(app.getHttpServer())
+        .patch(`/admin/users/${userId}`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ password: '123' })
+        .expect(400);
+    });
+
+    it('deve falhar com 401 sem token', async () => {
+      await request(app.getHttpServer())
+        .patch(`/admin/users/${userId}`)
+        .send({ password: 'novaSenha42' })
+        .expect(401);
+    });
+
+    it('deve falhar com 403 para usuário comum', async () => {
+      await request(app.getHttpServer())
+        .patch(`/admin/users/${userId}`)
+        .set('Authorization', `Bearer ${userToken}`)
+        .send({ password: 'novaSenha42' })
         .expect(403);
     });
   });
@@ -569,7 +713,22 @@ describe('Admin (e2e)', () => {
   // ─────────────────────────────────────────────
 
   describe('DELETE /admin/users/:id', () => {
-    it('✅ deve excluir usuário existente', async () => {
+    let adminToken: string;
+    let adminId: string;
+    let userToken: string;
+    let userId: string;
+
+    beforeEach(async () => {
+      const admin = await createAdmin(app);
+      adminToken = admin.token;
+      adminId = admin.user.id;
+
+      const user = await createRegularUser(app);
+      userToken = user.token;
+      userId = user.user.id;
+    });
+
+    it('deve excluir usuário existente', async () => {
       const res = await request(app.getHttpServer())
         .delete(`/admin/users/${userId}`)
         .set('Authorization', `Bearer ${adminToken}`)
@@ -578,7 +737,7 @@ describe('Admin (e2e)', () => {
       expect(res.body.message).toBeDefined();
     });
 
-    it('✅ usuário não deve existir no banco após exclusão', async () => {
+    it('usuário não deve existir no banco após exclusão', async () => {
       await request(app.getHttpServer())
         .delete(`/admin/users/${userId}`)
         .set('Authorization', `Bearer ${adminToken}`);
@@ -587,7 +746,7 @@ describe('Admin (e2e)', () => {
       expect(userInDb).toBeNull();
     });
 
-    it('✅ deve excluir refresh tokens do usuário em cascata', async () => {
+    it('deve excluir refresh tokens do usuário em cascata', async () => {
       await request(app.getHttpServer())
         .delete(`/admin/users/${userId}`)
         .set('Authorization', `Bearer ${adminToken}`);
@@ -599,33 +758,29 @@ describe('Admin (e2e)', () => {
       expect(tokensAfter.length).toBe(0);
     });
 
-    it('❌ deve retornar 404 para ID inexistente', async () => {
+    it('deve retornar 404 para ID inexistente', async () => {
       await request(app.getHttpServer())
         .delete('/admin/users/id-invalido')
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(404);
     });
 
-    it('❌ deve retornar 403 para usuário comum', async () => {
+    it('deve retornar 403 para usuário comum', async () => {
       await request(app.getHttpServer())
         .delete(`/admin/users/${userId}`)
         .set('Authorization', `Bearer ${userToken}`)
         .expect(403);
     });
 
-    it('❌ deve retornar 401 sem token', async () => {
+    it('deve retornar 401 sem token', async () => {
       await request(app.getHttpServer())
         .delete(`/admin/users/${userId}`)
         .expect(401);
     });
 
-    it('❌ admin não deve conseguir excluir a própria conta', async () => {
-      const adminRecord = await prisma.user.findUnique({
-        where: { email: adminUser.email },
-      });
-
+    it('admin não deve conseguir excluir a própria conta', async () => {
       await request(app.getHttpServer())
-        .delete(`/admin/users/${adminRecord!.id}`)
+        .delete(`/admin/users/${adminId}`)
         .set('Authorization', `Bearer ${adminToken}`)
         .expect(403);
     });

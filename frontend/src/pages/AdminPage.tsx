@@ -5,12 +5,14 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { UserTable } from '@/components/admin/UserTable';
 import { UserFilters } from '@/components/admin/UserFilters';
 import { UserForm } from '@/components/admin/UserForm';
+import { SetPasswordForm } from '@/components/admin/SetPasswordForm';
 import { ConfirmDelete } from '@/components/admin/ConfirmDelete';
 import type { User } from '@/services/admin.service';
 
 type ModalState =
   | { type: 'create' }
   | { type: 'edit'; user: User }
+  | { type: 'set-password'; user: User }
   | { type: 'delete'; user: User }
   | null;
 
@@ -40,6 +42,7 @@ export function AdminPage() {
     clearFilters,
     handleCreate,
     handleUpdate,
+    handleSetPassword,
     handleDelete,
     handleActivate,
     handlePromote,
@@ -97,6 +100,7 @@ export function AdminPage() {
           isProtected={isProtected}
           canEdit={canEdit}
           onEdit={(user) => { setActionError(null); setModal({ type: 'edit', user }); }}
+          onSetPassword={(user) => { setActionError(null); setModal({ type: 'set-password', user }); }}
           onDelete={(user) => { setActionError(null); setModal({ type: 'delete', user }); }}
           onActivate={handleActivate}
           onPromote={handlePromote}
@@ -130,6 +134,18 @@ export function AdminPage() {
             isProtectedUser={
               modal.user.id === firstAdminId && modal.user.id === currentUserId
             }
+          />
+        )}
+      </Modal>
+
+      {/* Modal — Definir senha */}
+      <Modal open={modal?.type === 'set-password'} onClose={closeModal} title="Definir senha" width="max-w-sm">
+        {modal?.type === 'set-password' && (
+          <SetPasswordForm
+            user={modal.user}
+            onSubmit={(password) => handleSetPassword(modal.user.id, password, closeModal)}
+            loading={actionLoading}
+            error={actionError}
           />
         )}
       </Modal>
