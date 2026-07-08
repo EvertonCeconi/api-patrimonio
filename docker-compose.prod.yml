@@ -75,7 +75,7 @@ services:
     profiles:
       - studio
     ports:
-      - "5555:5555"
+      - "127.0.0.1:5555:5555"
     env_file:
       - ./api-patrimonio/.env
     command: >
