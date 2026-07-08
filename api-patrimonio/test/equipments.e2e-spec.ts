@@ -27,7 +27,6 @@ describe('Equipments (e2e)', () => {
   const equipmentPayload: Record<string, unknown> = {
     name: 'Notebook Dell',
     location: 'Estoque Principal',
-    assetTag: 'PAT-001',
     model: 'Latitude 5420',
     serialNumber: 'SN-001',
   };
@@ -135,7 +134,7 @@ describe('Equipments (e2e)', () => {
   describe('GET /equipments', () => {
     it('deve listar equipamentos paginados', async () => {
       await createEquipment();
-      await createEquipment({ name: 'Monitor', assetTag: 'PAT-002' });
+      await createEquipment({ name: 'Monitor' });
 
       const res = await request(app.getHttpServer())
         .get('/equipments?page=1&limit=1')
@@ -271,12 +270,11 @@ describe('Equipments (e2e)', () => {
   describe('POST /equipments/import', () => {
     function buildCsvBuffer(rows: Record<string, string>[]): Buffer {
       const header =
-        'name;model;assetTag;serialNumber;location;ipAddress;status;description';
+        'name;model;serialNumber;location;ipAddress;status;description';
       const data = rows.map((r) =>
         [
           'name',
           'model',
-          'assetTag',
           'serialNumber',
           'location',
           'ipAddress',
@@ -295,7 +293,6 @@ describe('Equipments (e2e)', () => {
       const data = rows.map((r) => ({
         name: r.name ?? '',
         model: r.model ?? '',
-        assetTag: r.assetTag ?? '',
         serialNumber: r.serialNumber ?? '',
         location: r.location ?? '',
         ipAddress: r.ipAddress ?? '',
@@ -352,7 +349,6 @@ describe('Equipments (e2e)', () => {
         {
           name: 'Importado CSV',
           model: 'Modelo X',
-          assetTag: 'IMP-CSV',
           serialNumber: 'SN-CSV',
           location: 'Depósito',
         },
@@ -372,7 +368,6 @@ describe('Equipments (e2e)', () => {
         {
           name: 'Importado XLSX',
           model: 'Modelo Y',
-          assetTag: 'IMP-XLSX',
           serialNumber: 'SN-XLSX',
           location: 'Escritório',
         },
@@ -384,7 +379,6 @@ describe('Equipments (e2e)', () => {
 
     it('upsert: atualiza registro existente pelo serialNumber', async () => {
       await createEquipment({
-        assetTag: 'IMP-UPSERT',
         serialNumber: 'SN-UPSERT',
         name: 'Original',
       });
@@ -393,7 +387,6 @@ describe('Equipments (e2e)', () => {
         {
           name: 'Atualizado',
           model: 'Latitude 5420',
-          assetTag: 'IMP-UPSERT',
           serialNumber: 'SN-UPSERT',
           location: 'Novo Local',
         },

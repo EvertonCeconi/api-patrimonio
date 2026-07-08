@@ -4,7 +4,6 @@ import { EquipmentDto } from './equipment.dto';
 
 const validPayload = {
   name: 'Notebook Dell',
-  assetTag: 'PAT-001',
   serialNumber: 'SN-001',
   model: 'Latitude 5420',
   location: 'Estoque Principal',
@@ -42,13 +41,7 @@ describe('EquipmentDto', () => {
       expect(errors[0].property).toBe('model');
     });
 
-    it('deve rejeitar quando assetTag está ausente', async () => {
-      const { assetTag, ...rest } = validPayload;
-      const dto = plainToInstance(EquipmentDto, rest);
-      const errors = await validate(dto);
-      expect(errors).toHaveLength(1);
-      expect(errors[0].property).toBe('assetTag');
-    });
+    
 
     it('deve rejeitar quando serialNumber está ausente', async () => {
       const { serialNumber, ...rest } = validPayload;

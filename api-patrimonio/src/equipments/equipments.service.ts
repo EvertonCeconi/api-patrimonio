@@ -30,7 +30,6 @@ interface StagedImport {
 type SanitizedRow = {
   name?: string;
   model?: string;
-  assetTag?: string;
   serialNumber?: string;
   location?: string;
   ipAddress?: string;
@@ -54,14 +53,12 @@ export class EquipmentsService implements OnModuleDestroy {
   private readonly REQUIRED_COLUMNS = [
     'name',
     'model',
-    'assetTag',
     'serialNumber',
     'location',
   ];
   private readonly EXPORT_COLUMNS = [
     'name',
     'model',
-    'assetTag',
     'serialNumber',
     'ipAddress',
     'location',
@@ -141,7 +138,7 @@ export class EquipmentsService implements OnModuleDestroy {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
           { model: { contains: search, mode: 'insensitive' } },
-          { assetTag: { contains: search, mode: 'insensitive' } },
+          
           { serialNumber: { contains: search, mode: 'insensitive' } },
           { ipAddress: { contains: search, mode: 'insensitive' } },
           { description: { contains: search, mode: 'insensitive' } },
@@ -359,17 +356,6 @@ export class EquipmentsService implements OnModuleDestroy {
     });
 
     if (!bySerial) {
-      if (sanitized.assetTag) {
-        const byAssetTag = await this.prisma.equipment.findUnique({
-          where: { assetTag: sanitized.assetTag },
-        });
-        if (byAssetTag) {
-          return {
-            action: 'error',
-            message: `assetTag "${sanitized.assetTag}" já cadastrado com outro número de série (${byAssetTag.serialNumber})`,
-          };
-        }
-      }
       return { action: 'create' };
     }
 
