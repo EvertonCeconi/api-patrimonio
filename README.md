@@ -85,8 +85,8 @@ docker compose up -d --build
 
 | Serviço | URL |
 |---|---|
-| Frontend | http://localhost:1010 |
-| API | http://localhost:3210 |
+| Frontend | http://localhost:5170 |
+| API | http://localhost:3000 |
 | Prisma Studio | http://localhost:5555 |
 | Postgres | localhost:5432 |
 
