@@ -77,7 +77,6 @@ describe('EquipmentsService — import validation', () => {
       const errors = validateRow({
         name: 'Notebook',
         model: 'M1',
-        assetTag: 'PAT-001',
         serialNumber: 'SN-001',
         location: 'Local',
       });
@@ -88,7 +87,6 @@ describe('EquipmentsService — import validation', () => {
       const errors = validateRow({
         name: '',
         model: 'M1',
-        assetTag: 'PAT-001',
         serialNumber: 'SN-001',
         location: 'Local',
       });
@@ -101,7 +99,6 @@ describe('EquipmentsService — import validation', () => {
       const errors = validateRow({
         name: 'Notebook',
         model: '',
-        assetTag: 'PAT-001',
         serialNumber: 'SN-001',
         location: 'Local',
       });
@@ -110,24 +107,10 @@ describe('EquipmentsService — import validation', () => {
       );
     });
 
-    it('deve rejeitar assetTag ausente', () => {
-      const errors = validateRow({
-        name: 'Notebook',
-        model: 'M1',
-        assetTag: '',
-        serialNumber: 'SN-001',
-        location: 'Local',
-      });
-      expect(errors).toEqual(
-        expect.arrayContaining([expect.stringMatching(/assetTag/i)]),
-      );
-    });
-
     it('deve rejeitar serialNumber ausente', () => {
       const errors = validateRow({
         name: 'Notebook',
         model: 'M1',
-        assetTag: 'PAT-001',
         serialNumber: '',
         location: 'Local',
       });
@@ -140,7 +123,6 @@ describe('EquipmentsService — import validation', () => {
       const errors = validateRow({
         name: 'Notebook',
         model: 'M1',
-        assetTag: 'PAT-001',
         serialNumber: 'SN-001',
         location: '',
       });
@@ -153,7 +135,6 @@ describe('EquipmentsService — import validation', () => {
       const errors = validateRow({
         name: 'Notebook',
         model: 'M1',
-        assetTag: 'PAT-001',
         serialNumber: 'SN-001',
         location: 'Local',
         status: 'INVALIDO',
@@ -167,7 +148,6 @@ describe('EquipmentsService — import validation', () => {
       const errors = validateRow({
         name: 'Notebook',
         model: 'M1',
-        assetTag: 'PAT-001',
         serialNumber: 'SN-001',
         location: 'Local',
         ipAddress: '999.999.999.999',
@@ -181,7 +161,6 @@ describe('EquipmentsService — import validation', () => {
       const errors = validateRow({
         name: '=CMD',
         model: 'M1',
-        assetTag: 'PAT-001',
         serialNumber: 'SN-001',
         location: 'Local',
       });
@@ -194,11 +173,10 @@ describe('EquipmentsService — import validation', () => {
       const errors = validateRow({
         name: '',
         model: '',
-        assetTag: '',
         serialNumber: '',
         location: '',
       });
-      expect(errors).toHaveLength(5);
+      expect(errors).toHaveLength(4);
     });
   });
 });

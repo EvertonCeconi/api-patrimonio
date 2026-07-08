@@ -23,7 +23,6 @@ model User {
 model Equipment {
   id           String   @id @default(uuid())
   name         String
-  assetTag     String   @unique
   serialNumber String   @unique
   ipAddress    String?
   model        String?

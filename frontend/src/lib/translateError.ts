@@ -10,7 +10,7 @@ export const fieldMap: Record<string, string> = {
     isActive: 'Ativo',
     page: 'Página',
     limit: 'Limite',
-    assetTag: 'Patrimônio',
+    
     serialNumber: 'Número de série',
   };
 

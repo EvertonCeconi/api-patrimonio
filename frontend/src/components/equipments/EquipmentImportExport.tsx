@@ -115,7 +115,7 @@ export function EquipmentImportExport({ open, onClose, filters }: EquipmentImpor
               <h3 className="text-sm font-medium text-surface-900 mb-3">Importar</h3>
               <p className="text-xs text-surface-600 mb-3">
                 Formatos aceitos: .csv e .xlsx. Limite: 500 linhas e 5 MB.
-                Colunas obrigatórias: name, model, assetTag, serialNumber, location.
+                Colunas obrigatórias: name, model, serialNumber, location.
               </p>
 
               {/* Step 1: file picker */}

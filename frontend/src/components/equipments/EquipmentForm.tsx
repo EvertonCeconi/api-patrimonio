@@ -22,7 +22,7 @@ export function EquipmentForm({ initial, onSubmit, onCancel, loading }: Equipmen
     name:initial?.name ?? '',
     location:initial?.location ?? '',
     model:initial?.model ?? '',
-    assetTag:initial?.assetTag ?? '',
+    
     serialNumber:initial?.serialNumber ?? '',
     ipAddress:initial?.ipAddress ?? '',
     description:initial?.description ?? '',
@@ -82,11 +82,7 @@ export function EquipmentForm({ initial, onSubmit, onCancel, loading }: Equipmen
             onChange={(e) => set('serialNumber', e.target.value)} required placeholder="Ex: 948347" />
         </div>
 
-        <div className="col-span-2">
-          <label className="label">Patrimônio</label>
-          <input className="input" value={form.assetTag}
-            onChange={(e) => set('assetTag', e.target.value)} required  placeholder="Ex: PAT-001" />
-        </div>        
+                
 
       </div>
       <div className="grid gap-2">

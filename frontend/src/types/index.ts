@@ -39,7 +39,7 @@ export interface Equipment {
   name: string;
   location: string;
   model: string;
-  assetTag?: string;
+  
   serialNumber?: string;
   ipAddress?: string;
   description?: string;
@@ -52,7 +52,7 @@ export interface EquipmentPayload {
   name: string;
   location: string;
   model: string;
-  assetTag?: string;
+  
   serialNumber?: string;
   ipAddress?: string;
   description?: string;
