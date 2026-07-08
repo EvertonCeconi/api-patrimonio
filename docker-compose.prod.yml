@@ -67,5 +67,21 @@ services:
         crond -f -l 2
       "
 
+  prisma-studio:
+    build:
+      context: ./api-patrimonio
+      target: production
+    container_name: prisma-studio
+    profiles:
+      - studio
+    ports:
+      - "5555:5555"
+    env_file:
+      - ./api-patrimonio/.env
+    command: npx prisma studio --port 5555 --browser none
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres_data:

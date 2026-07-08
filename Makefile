@@ -61,6 +61,13 @@ restart: ## Restart all services
 status: ## Show container status
 	docker compose -f $(COMPOSE_FILE) ps
 
+prisma: ## Start Prisma Studio (port 5555) — make prisma-stop to close
+	docker compose -f $(COMPOSE_FILE) --profile studio up -d prisma-studio
+
+prisma-stop: ## Stop Prisma Studio
+	docker compose -f $(COMPOSE_FILE) stop prisma-studio
+	docker compose -f $(COMPOSE_FILE) rm -f prisma-studio
+
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
