@@ -17,9 +17,8 @@ log "Iniciando deploy..."
 [ ! -f "api-patrimonio/.env" ]    && error "Arquivo api-patrimonio/.env não encontrado!"
 [ ! -f "docker-compose.prod.yml" ] && error "docker-compose.prod.yml não encontrado!"
 
-log "Atualizando código do repositório..."
 if [ -d ".git" ]; then
-  git pull origin main
+  warn "Pule o git pull manualmente antes do deploy: git pull origin main"
 else
   log ".git não encontrado — pulando git pull"
 fi
@@ -36,6 +35,13 @@ for i in $(seq 1 30); do
   echo "Aguardando... ($i)"
   sleep 2
 done
+
+log "Aplicando migrações do banco..."
+docker compose -f docker-compose.prod.yml exec -T api npx prisma migrate deploy
+
+log "Populando dados iniciais (seed)..."
+docker compose -f docker-compose.prod.yml exec -T api npx tsx prisma/seed.ts || \
+  warn "Seed não executado (provavelmente já populado — ignorável)."
 
 log "Limpando imagens antigas..."
 docker image prune -f

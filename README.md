@@ -92,45 +92,7 @@ docker compose up -d --build
 
 ---
 
-## Produção
-
-### Configurar acesso ao repositório (repo privado)
-
-No servidor, gere uma **deploy key** (SSH) para acesso read-only:
-
-```bash
-ssh-keygen -t ed25519 -f ~/.ssh/deploy_key -N ""
-cat ~/.ssh/deploy_key.pub
-```
-
-Copie a saída e adicione no GitHub:
-**Settings > Deploy keys > Add deploy key** (marque "Allow write access" apenas se necessário).
-
-Crie `~/.ssh/config` no servidor:
-
-```
-Host github.com
-  IdentityFile ~/.ssh/deploy_key
-```
-
-Teste a conexão:
-
-```bash
-ssh -T git@github.com
-# Hi EvertonCeconi/api-patrimonio! You've successfully authenticated...
-```
-
-### Gerar certificado TLS (auto-assinado para rede interna)
-
-```bash
-mkdir -p nginx/certs
-openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
-  -keyout nginx/certs/privkey.pem \
-  -out nginx/certs/fullchain.pem \
-  -subj "/CN=seu-servidor-interno"
-```
-
-> Para certificado de CA interna, substitua pelos arquivos fornecidos pela sua equipe de infra.
+## Produção (rede interna HTTP)
 
 ### Primeiro deploy no servidor
 
@@ -140,36 +102,52 @@ git clone git@github.com:EvertonCeconi/api-patrimonio.git
 cd api-patrimonio
 
 # 2. Configure os .env com valores de produção
-cp .env.example .env
-cp api-patrimonio/.env.example api-patrimonio/.env
-# edite os arquivos com senhas fortes e NODE_ENV=production
+cat > .env << 'EOF'
+POSTGRES_USER=patrimonio_admin
+POSTGRES_PASSWORD=sua_senha_forte
+POSTGRES_DB=api_patrimonio
+EOF
 
-# 3. Dê permissão ao script de deploy
+cat > api-patrimonio/.env << 'EOF'
+DATABASE_URL="postgresql://patrimonio_admin:sua_senha_forte@postgres:5432/api_patrimonio?schema=public"
+JWT_SECRET=7f8a9b3c2d1e4f5a6b7c8d9e0f1a2b3c
+NODE_ENV=production
+COOKIE_SECURE=false
+CORS_ORIGIN=http://SEU_IP:1010
+EOF
+```
+
+> Gere um `JWT_SECRET` com `openssl rand -hex 32`.  
+> Substitua `SEU_IP` pelo IP do servidor (veja com `hostname -I`).
+
+### 3. Libere a porta no firewall
+
+```bash
+sudo ufw allow 1010
+```
+
+### 4. Execute o deploy
+
+```bash
 chmod +x deploy.sh
-
-# 4. Execute o deploy
 ./deploy.sh
+```
 
-# 5. Apenas no primeiro deploy — cria o admin inicial
-docker exec api_patrimonio npx prisma db seed
+### Deploys seguintes
+
+```bash
+git pull origin main
+./deploy.sh
 ```
 
 | Papel | Email | Senha |
 |---|---|---|
 | Admin | `admin@empresa.com` | `senha123` |
 
-### Deploys seguintes
-
-Com a deploy key configurada, basta rodar:
-
-```bash
-./deploy.sh
-```
-
 O script automaticamente:
-1. Atualiza o código via `git pull`
-2. Builda e sobe todos os containers (API + Frontend com nginx)
-3. Aguarda a API responder via healthcheck (`GET /api/health` via HTTPS)
+1. Builda e sobe todos os containers (API + Frontend com nginx)
+2. Aguarda a API responder via healthcheck (`GET /health`)
+3. Aplica migrações do banco e seed
 4. Limpa imagens Docker antigas
 
 ### Comandos úteis (Makefile)
@@ -201,8 +179,10 @@ make down       # Parar todos containers
 |---|---|---|
 | `DATABASE_URL` | String de conexão do Prisma | `postgresql://...` |
 | `JWT_SECRET` | Chave secreta para tokens JWT | `chave_longa_aleatoria` |
-| `PORT` | Porta da API | `3000` |
 | `NODE_ENV` | Ambiente de execução | `development` / `production` |
+| `COOKIE_SECURE` | `true` para HTTPS, `false` para HTTP | `false` |
+| `CORS_ORIGIN` | URL do frontend para CORS | `http://192.168.1.100:1010` |
+| `PORT` | Porta interna da API (não alterar) | `3000` |
 
 ---
 
@@ -212,11 +192,10 @@ make down       # Parar todos containers
 rede interna
     └── frontend (nginx, porta 80, exposta como :1010)
             ├── /        → serve o React (dist/ estático)
-            ├── /api/*   → proxy reverso para api:3000 (NestJS)
-            │                 └── postgres:5432 (PostgreSQL)
-            └── HTTP :80 → redireciona para HTTPS
+            └── /api/*   → proxy reverso para api:3000 (NestJS)
+                              └── postgres:5432 (PostgreSQL)
 API também exposta diretamente na porta :3210 (para ferramentas externas)
-Backup automátivo: pg_dump todo dia às 03:00 (container backup)
+Backup automático: pg_dump todo dia às 03:00 (container backup)
 Retenção: 30 dias
 ```
 
@@ -246,7 +225,7 @@ Problemas comuns:
 O nginx pode estar com a configuração de proxy incorreta. Verifique:
 
 ```bash
-curl -sf http://localhost/api/health
+curl -sf http://localhost:3210/health
 ```
 
 Se falhar, entre no container e teste direto:
