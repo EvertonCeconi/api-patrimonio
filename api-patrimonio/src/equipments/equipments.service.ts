@@ -130,15 +130,26 @@ export class EquipmentsService implements OnModuleDestroy {
   private buildWhereFromQuery(
     query: PaginationDto,
   ): Prisma.EquipmentWhereInput {
-    const { search, status } = query;
+    const { search, status, name, model, serialNumber, ipAddress, location } =
+      query;
 
     return {
       ...(status && { status }),
+      ...(name && { name: { contains: name, mode: 'insensitive' } }),
+      ...(model && { model: { contains: model, mode: 'insensitive' } }),
+      ...(serialNumber && {
+        serialNumber: { contains: serialNumber, mode: 'insensitive' },
+      }),
+      ...(ipAddress && {
+        ipAddress: { contains: ipAddress, mode: 'insensitive' },
+      }),
+      ...(location && {
+        location: { contains: location, mode: 'insensitive' },
+      }),
       ...(search && {
         OR: [
           { name: { contains: search, mode: 'insensitive' } },
           { model: { contains: search, mode: 'insensitive' } },
-          
           { serialNumber: { contains: search, mode: 'insensitive' } },
           { ipAddress: { contains: search, mode: 'insensitive' } },
           { description: { contains: search, mode: 'insensitive' } },

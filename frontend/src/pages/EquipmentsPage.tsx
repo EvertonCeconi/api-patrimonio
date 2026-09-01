@@ -23,6 +23,45 @@ export function EquipmentsPage() {
   const [filters, setFilters] = useState<EquipmentFilters>({ page: 1 });
   const [search, setSearch] = useState('');
 
+  // Filtros específicos por coluna (independentes da busca geral)
+  const [columnFilters, setColumnFilters] = useState({
+    name: '',
+    model: '',
+    serialNumber: '',
+    ipAddress: '',
+    location: '',
+  });
+
+  const hasColumnFilters = Object.values(columnFilters).some((v) => v.trim() !== '');
+  const [appliedFilters, setAppliedFilters] = useState<EquipmentFilters>({});
+
+  function applyColumnFilters() {
+    const clean: EquipmentFilters = {};
+    for (const key of Object.keys(columnFilters) as (keyof typeof columnFilters)[]) {
+      const value = columnFilters[key].trim();
+      if (value) clean[key] = value;
+    }
+    setAppliedFilters(clean);
+    // remove filtros de coluna antigos (que foram limpos no input)
+    // preservando busca geral (search) e status
+    setFilters((f) => {
+      const { name, model, serialNumber, ipAddress, location, ...rest } = f;
+      return { ...rest, page: 1, ...clean };
+    });
+  }
+
+  function clearColumnFilters() {
+    setColumnFilters({ name: '', model: '', serialNumber: '', ipAddress: '', location: '' });
+    setAppliedFilters({});
+    setFilters((f) => {
+      const rest: EquipmentFilters = { page: 1 };
+      // preserva search e status existentes
+      if (f.status) rest.status = f.status;
+      if (f.search) rest.search = f.search;
+      return rest;
+    });
+  }
+
   const { data, isLoading, isError } = useEquipments(filters);
 
   const createMutation  = useCreateEquipment();
@@ -112,6 +151,54 @@ export function EquipmentsPage() {
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
         </select>
+      </div>
+
+      {/* Filtros específicos por coluna */}
+      <div className="mb-3 rounded-lg border border-surface-100 bg-white p-3">
+        <div className="flex flex-wrap gap-3">
+          {(
+            [
+              ['name', 'Nome'],
+              ['model', 'Modelo'],
+              ['serialNumber', 'Nº de série'],
+              ['ipAddress', 'IP'],
+              ['location', 'Localização'],
+            ] as const
+          ).map(([key, label]) => (
+            <div key={key} className="flex-1 min-w-[140px]">
+              <label className="block text-xs font-medium text-surface-600 mb-1">
+                {label}
+              </label>
+              <input
+                className="input"
+                placeholder={`Filtrar por ${label.toLowerCase()}`}
+                value={columnFilters[key]}
+                onChange={(e) =>
+                  setColumnFilters((cf) => ({ ...cf, [key]: e.target.value }))
+                }
+                onKeyDown={(e) => e.key === 'Enter' && applyColumnFilters()}
+                onBlur={applyColumnFilters}
+              />
+            </div>
+          ))}
+          <div className="flex items-end gap-2">
+            <button
+              onClick={applyColumnFilters}
+              className="btn-primary"
+              title="Aplicar filtros específicos"
+            >
+              Aplicar
+            </button>
+            <button
+              onClick={clearColumnFilters}
+              className="btn-secondary"
+              disabled={!hasColumnFilters && !Object.keys(appliedFilters).length}
+              title="Limpar filtros específicos (mantém a busca geral)"
+            >
+              Limpar filtros
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Table */}
