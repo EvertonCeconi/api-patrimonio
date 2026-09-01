@@ -33,7 +33,7 @@ frontend/            # Vite + React + TypeScript
 ## Modelo de Dados (Prisma)
 
 - **User**: id (uuid), name, email (unique), passwordHash, role (ADMIN|USER), isActive (default false)
-- **Equipment**: id (uuid), name, assetTag (unique), serialNumber (unique), ipAddress?, model?, description?, status (ESTOQUE|MANUTENCAO|RETIRADA_PECAS|CLIENTE), location
+- **Equipment**: id (uuid), name, serialNumber (unique), ipAddress?, model?, description?, status (ESTOQUE|MANUTENCAO|RETIRADA_PECAS|CLIENTE), location
 - **RefreshToken**: id (uuid), token (unique), userId, expiresAt (7d), cascade delete com User
 
 ## Regras de Negócio
@@ -68,7 +68,7 @@ frontend/            # Vite + React + TypeScript
 ### Equipments (requer JWT)
 | Método | Rota | Role | Descrição |
 |--------|------|------|-----------|
-| GET | /equipments | - | Listar (paginado, busca, filtro) |
+| GET | /equipments | - | Listar (paginado, busca, filtros por coluna) |
 | GET | /equipments/:id | - | Buscar por ID |
 | POST | /equipments | - | Criar |
 | PATCH | /equipments/:id | - | Atualizar |
