@@ -81,6 +81,11 @@ export interface EquipmentFilters {
   limit?: number;
   search?: string;
   status?: Estado;
+  name?: string;
+  model?: string;
+  serialNumber?: string;
+  ipAddress?: string;
+  location?: string;
 }
 
 export interface ApiError {

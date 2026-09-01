@@ -153,6 +153,100 @@ describe('Equipments (e2e)', () => {
     });
   });
 
+  // ── COLUMN FILTERS ──────────────────────────
+
+  describe('GET /equipments — filtros específicos por coluna', () => {
+    beforeEach(async () => {
+      await createEquipment({
+        name: 'Impressora HP',
+        model: 'LaserJet M404',
+        serialNumber: 'SN-HP-001',
+        ipAddress: '192.168.1.10',
+        location: 'Matriz',
+        status: 'ESTOQUE',
+      });
+      await createEquipment({
+        name: 'Notebook Dell',
+        model: 'Latitude 5420',
+        serialNumber: 'SN-DELL-001',
+        ipAddress: '10.0.0.5',
+        location: 'Matriz',
+        status: 'CLIENTE',
+      });
+      await createEquipment({
+        name: 'Monitor LG',
+        model: '24MK600',
+        serialNumber: 'SN-LG-001',
+        ipAddress: '192.168.1.20',
+        location: 'Filial',
+        status: 'MANUTENCAO',
+      });
+    });
+
+    it('deve filtrar por um único filtro (location)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/equipments?location=Matriz')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(res.body.meta.total).toBe(2);
+      const names = res.body.data.map((e: { name: string }) => e.name).sort();
+      expect(names).toEqual(['Impressora HP', 'Notebook Dell'].sort());
+    });
+
+    it('deve combinar vários filtros (location + name)', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/equipments?location=Matriz&name=Impressora')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(res.body.meta.total).toBe(1);
+      expect(res.body.data[0].name).toBe('Impressora HP');
+    });
+
+    it('deve combinar filtro específico com a busca geral', async () => {
+      // busca geral por "Dell" + filtro por location "Matriz"
+      const res = await request(app.getHttpServer())
+        .get('/equipments?search=Dell&location=Matriz')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(res.body.meta.total).toBe(1);
+      expect(res.body.data[0].name).toBe('Notebook Dell');
+    });
+
+    it('deve combinar filtro de estado com filtro de coluna', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/equipments?status=ESTOQUE&ipAddress=192.168.1.10')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(res.body.meta.total).toBe(1);
+      expect(res.body.data[0].name).toBe('Impressora HP');
+    });
+
+    it('deve filtrar por serialNumber', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/equipments?serialNumber=SN-LG-001')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(res.body.meta.total).toBe(1);
+      expect(res.body.data[0].name).toBe('Monitor LG');
+    });
+
+    it('sem filtros deve retornar todos os equipamentos', async () => {
+      const res = await request(app.getHttpServer())
+        .get('/equipments')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      expect(res.body.meta.total).toBe(3);
+
+      expect(res.body.data).toHaveLength(3);
+    });
+  });
+
   // ── GET /:id ────────────────────────────────
 
   describe('GET /equipments/:id', () => {

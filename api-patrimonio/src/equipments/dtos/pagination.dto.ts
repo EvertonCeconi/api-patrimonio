@@ -36,6 +36,41 @@ export class PaginationDto {
   search?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(255, {
+    context: { max: 255 },
+  })
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255, {
+    context: { max: 255 },
+  })
+  model?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255, {
+    context: { max: 255 },
+  })
+  serialNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255, {
+    context: { max: 255 },
+  })
+  ipAddress?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255, {
+    context: { max: 255 },
+  })
+  location?: string;
+
+  @IsOptional()
   @IsEnum(Estado)
   status?: Estado;
 }

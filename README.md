@@ -150,9 +150,23 @@ O script automaticamente:
 3. Aplica migrações do banco e seed
 4. Limpa imagens Docker antigas
 
+### Comparação de deploys
+
+| | `./deploy.sh` | `make deploy` |
+|---|---|---|
+| Git pull | Manual (`git pull origin main`) | Automático |
+| Build + restart | ✅ | ✅ |
+| Aplica migrações (`prisma migrate deploy`) | ✅ | ❌ |
+| Seed | ✅ | ❌ |
+| Limpa imagens antigas | ✅ | ✅ |
+
+> **Importante:** `make deploy` **não aplica migrações de banco**. Se a atualização incluir mudança de schema (ex.: nova coluna no Prisma), rode também `make migrate` após o deploy — senão o app para de funcionar (ex.: erro 500 ao criar equipamento com migration pendente). Para segurança, o fluxo `git pull && ./deploy.sh` é o recomendado.
+
 ### Comandos úteis (Makefile)
 
 ```bash
+make deploy     # Pull + build dos containers (não aplica migrações)
+make migrate    # Aplica migrações do banco (prisma migrate deploy)
 make logs       # Logs de todos containers
 make status     # Status dos containers
 make backup     # Backup manual do banco
