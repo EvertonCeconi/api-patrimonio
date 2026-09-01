@@ -45,7 +45,12 @@ export function EquipmentsPage() {
     // remove filtros de coluna antigos (que foram limpos no input)
     // preservando busca geral (search) e status
     setFilters((f) => {
-      const { name, model, serialNumber, ipAddress, location, ...rest } = f;
+      const rest: EquipmentFilters = { ...f };
+      delete rest.name;
+      delete rest.model;
+      delete rest.serialNumber;
+      delete rest.ipAddress;
+      delete rest.location;
       return { ...rest, page: 1, ...clean };
     });
   }
