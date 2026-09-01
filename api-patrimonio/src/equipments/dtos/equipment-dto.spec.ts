@@ -41,8 +41,6 @@ describe('EquipmentDto', () => {
       expect(errors[0].property).toBe('model');
     });
 
-    
-
     it('deve rejeitar quando serialNumber está ausente', async () => {
       const { serialNumber, ...rest } = validPayload;
       const dto = plainToInstance(EquipmentDto, rest);
