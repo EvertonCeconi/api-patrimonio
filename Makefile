@@ -26,10 +26,13 @@ backup: ## Run a manual backup now
 
 restore: ## Restore from a backup file (usage: make restore FILE=patrimonio_20250101_030000.sql.gz)
 	@test -n "$(FILE)" || (echo "Usage: make restore FILE=patrimonio_20250101_030000.sql.gz"; exit 1)
-	gunzip -c backups/$(FILE) | docker compose -f $(COMPOSE_FILE) exec -T postgres psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+	docker compose -f $(COMPOSE_FILE) stop api
+	docker compose -f $(COMPOSE_FILE) exec postgres sh -c 'dropdb -U "$$POSTGRES_USER" --if-exists "$$POSTGRES_DB" && createdb -U "$$POSTGRES_USER" "$$POSTGRES_DB"'
+	gunzip -c backups/$(FILE) | docker compose -f $(COMPOSE_FILE) exec -T postgres sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
+	docker compose -f $(COMPOSE_FILE) start api
 
 psql: ## Open a psql shell
-	docker compose -f $(COMPOSE_FILE) exec postgres psql -U $(POSTGRES_USER) -d $(POSTGRES_DB)
+	docker compose -f $(COMPOSE_FILE) exec postgres sh -c 'psql -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"'
 
 migrate: ## Run Prisma migrations
 	docker compose -f $(COMPOSE_FILE) exec api npx prisma migrate deploy
