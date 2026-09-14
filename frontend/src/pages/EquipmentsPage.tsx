@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useEquipments, useCreateEquipment, useUpdateEquipment, useDeleteEquipment } from '@/hooks/useEquipments';
+import { useEquipments, useCreateEquipment, useUpdateEquipment, useDeleteEquipment, useEquipmentSuggestions } from '@/hooks/useEquipments';
 import { useAuthStore } from '@/store/auth.store';
 import { EstadoBadge } from '@/components/ui/EstadoBadge';
 import { Pagination } from '@/components/ui/Pagination';
@@ -68,6 +68,9 @@ export function EquipmentsPage() {
   }
 
   const { data, isLoading, isError } = useEquipments(filters);
+
+  // Sugestões de autocomplete vindas do banco (GET /equipments/suggestions)
+  const { data: suggestions } = useEquipmentSuggestions();
 
   const createMutation  = useCreateEquipment();
   const deleteMutation  = useDeleteEquipment();
@@ -286,6 +289,7 @@ export function EquipmentsPage() {
       {/* Modal — Criar */}
       <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Novo equipamento" width="max-w-xl">
         <EquipmentForm
+          suggestions={suggestions}
           onSubmit={handleCreate}
           onCancel={() => setCreateOpen(false)}
           loading={createMutation.isPending}
@@ -297,6 +301,7 @@ export function EquipmentsPage() {
         {editTarget && (
           <EquipmentForm
             initial={editTarget}
+            suggestions={suggestions}
             onSubmit={handleEdit}
             onCancel={() => setEditTarget(null)}
             loading={updateMutation.isPending}

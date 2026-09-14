@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import type { ApiErrorResponse, Equipment, EquipmentPayload, Estado } from '@/types';
+import type { ApiErrorResponse, Equipment, EquipmentPayload, EquipmentSuggestions, Estado } from '@/types';
 import { translateConflict, translateError } from '@/lib/translateError';
 import axios from 'axios';
+import { Autocomplete } from '@/components/ui/Autocomplete';
 
 const ESTADOS: { value: Estado; label: string }[] = [
   { value: 'ESTOQUE',    label: 'Estoque' },
@@ -12,12 +13,13 @@ const ESTADOS: { value: Estado; label: string }[] = [
 
 interface EquipmentFormProps {
   initial?: Partial<Equipment>;
+  suggestions?: Partial<EquipmentSuggestions>;
   onSubmit: (data: EquipmentPayload) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
 }
 
-export function EquipmentForm({ initial, onSubmit, onCancel, loading }: EquipmentFormProps) {
+export function EquipmentForm({ initial, suggestions, onSubmit, onCancel, loading }: EquipmentFormProps) {
   const [form, setForm] = useState<EquipmentPayload>({
     name:initial?.name ?? '',
     location:initial?.location ?? '',
@@ -70,11 +72,14 @@ export function EquipmentForm({ initial, onSubmit, onCancel, loading }: Equipmen
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
 
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="label">Nome *</label>
-          <input className="input w-full" value={form.name}
-            onChange={(e) => set('name', e.target.value)} required placeholder="Ex: Impressora HP" />
-        </div>
+        <Autocomplete
+          label="Nome *"
+          value={form.name}
+          options={suggestions?.name}
+          onChange={(v) => set('name', v)}
+          required
+          placeholder="Ex: Impressora HP"
+        />
 
         <div>
           <label className="label">Número de série</label>
@@ -82,23 +87,31 @@ export function EquipmentForm({ initial, onSubmit, onCancel, loading }: Equipmen
             onChange={(e) => set('serialNumber', e.target.value)} required placeholder="Ex: 948347" />
         </div>
 
-        <div>
-          <label className="label">Modelo *</label>
-          <input className="input w-full" value={form.model}
-            onChange={(e) => set('model', e.target.value)} required placeholder="Ex: 3710SF" />
-        </div>
+        <Autocomplete
+          label="Modelo *"
+          value={form.model}
+          options={suggestions?.model}
+          onChange={(v) => set('model', v)}
+          required
+          placeholder="Ex: 3710SF"
+        />
 
-        <div>
-          <label className="label">Localização *</label>
-          <input className="input w-full" value={form.location}
-            onChange={(e) => set('location', e.target.value)} required placeholder="Ex: Matriz" />
-        </div>
+        <Autocomplete
+          label="Localização *"
+          value={form.location}
+          options={suggestions?.location}
+          onChange={(v) => set('location', v)}
+          required
+          placeholder="Ex: Matriz"
+        />
 
-        <div>
-          <label className="label">IP</label>
-          <input className="input w-full" value={form.ipAddress}
-            onChange={(e) => set('ipAddress', e.target.value)} placeholder="Ex: 192.168.0.1" />
-        </div>
+        <Autocomplete
+          label="IP"
+          value={form.ipAddress}
+          options={suggestions?.ipAddress}
+          onChange={(v) => set('ipAddress', v)}
+          placeholder="Ex: 192.168.0.1"
+        />
 
         <div>
           <label className="label">Estado</label>
