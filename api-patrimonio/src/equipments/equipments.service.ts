@@ -149,9 +149,13 @@ export class EquipmentsService implements OnModuleDestroy {
 
     return {
       name: nameRows.map((r) => r.name),
-      model: modelRows.map((r) => r.model).filter((v): v is string => v !== null),
+      model: modelRows
+        .map((r) => r.model)
+        .filter((v): v is string => v !== null),
       location: locationRows.map((r) => r.location),
-      ipAddress: ipRows.map((r) => r.ipAddress).filter((v): v is string => v !== null),
+      ipAddress: ipRows
+        .map((r) => r.ipAddress)
+        .filter((v): v is string => v !== null),
     };
   }
 

@@ -107,7 +107,7 @@ export function EquipmentForm({ initial, suggestions, onSubmit, onCancel, loadin
 
         <Autocomplete
           label="IP"
-          value={form.ipAddress}
+          value={form.ipAddress ?? ''}
           options={suggestions?.ipAddress}
           onChange={(v) => set('ipAddress', v)}
           placeholder="Ex: 192.168.0.1"
