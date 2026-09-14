@@ -1,6 +1,5 @@
 import {
   Injectable,
-  ConflictException,
   UnauthorizedException,
   ForbiddenException,
   BadRequestException,
@@ -17,6 +16,11 @@ export class AuthService {
     private prismaService: PrismaService,
     private jwtService: JwtService,
   ) {}
+
+  // Hash dummy para igualar o tempo de resposta quando o e-mail não existe
+  // (evita timing attack / enumeração de usuários via tempo de resposta)
+  private readonly DUMMY_PASSWORD_HASH =
+    '$2b$10$iKz9uanhe9tj2dRjq.jJE.U6RbC9LH9qch.RuE45CCElO/UE/3c9e';
 
   private async generateRefreshToken(userId: string) {
     const token = randomUUID();
@@ -40,26 +44,23 @@ export class AuthService {
       where: { email: data.email },
     });
 
-    if (userExists) {
-      throw new ConflictException('Usuário já existe');
+    // Não revela se o e-mail já está cadastrado (evita enumeração de usuários).
+    // E-mail existente: responde sucesso e descarta silenciosamente.
+    if (!userExists) {
+      const passwordHash = await bcrypt.hash(data.password, 10);
+
+      await this.prismaService.user.create({
+        data: {
+          name: data.name,
+          email: data.email,
+          passwordHash,
+        },
+      });
     }
 
-    const passwordHash = await bcrypt.hash(data.password, 10);
-
-    const user = await this.prismaService.user.create({
-      data: {
-        name: data.name,
-        email: data.email,
-        passwordHash,
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-      },
-    });
-
-    return user;
+    return {
+      message: 'Cadastro recebido. Aguarde a ativação pelo administrador.',
+    };
   }
 
   async signIn(data: SignInDto) {
@@ -67,23 +68,17 @@ export class AuthService {
       where: { email: data.email },
     });
 
-    if (!user) {
-      throw new UnauthorizedException('Credenciais inválidas');
-    }
-
+    // Sempre roda bcrypt (com hash dummy quando o usuário não existe) para
+    // manter o tempo de resposta constante e esconder se o e-mail existe.
     const passwordMatch = await bcrypt.compare(
       data.password,
-      user.passwordHash,
+      user?.passwordHash ?? this.DUMMY_PASSWORD_HASH,
     );
 
-    if (!passwordMatch) {
+    if (!user || !passwordMatch || !user.isActive) {
+      // Resposta genérica: mesma mensagem para senha errada, usuário
+      // inexistente ou conta inativa (evita enumeração via status).
       throw new UnauthorizedException('Credenciais inválidas');
-    }
-
-    if (!user.isActive) {
-      throw new ForbiddenException(
-        'Sua conta ainda não foi ativada. Aguardando ativação do Admin.',
-      );
     }
 
     const payload = { sub: user.id, email: user.email };

@@ -44,7 +44,7 @@ export function AppLayout() {
       <aside className="w-60 shrink-0 bg-white border-r border-surface-100 flex flex-col">
         <div className="h-16 flex items-center px-5 border-b border-surface-100">
           <Link to="/equipments" className="font-semibold text-surface-900 tracking-tight hover:text-brand-600 transition-colors">
-            <span className="text-brand-600">Patri</span>mônio
+            <span className="text-brand-600">Equipa</span>mentos Itek
           </Link>
         </div>
 

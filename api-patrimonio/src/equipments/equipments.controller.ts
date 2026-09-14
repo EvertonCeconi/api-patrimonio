@@ -106,6 +106,11 @@ export class EquipmentsController {
     return this.equipmentService.importConfirm(body.token);
   }
 
+  @Get('suggestions')
+  async suggestions() {
+    return this.equipmentService.getSuggestions();
+  }
+
   @Get()
   findAll(@Query() query: PaginationDto) {
     return this.equipmentService.findAll(query);
