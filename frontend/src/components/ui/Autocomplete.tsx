@@ -5,6 +5,9 @@ interface AutocompleteProps {
   value: string;
   options?: string[];
   onChange: (value: string) => void;
+  onBlur?: () => void;
+  onSelect?: (value: string) => void;
+  onEnter?: () => void;
   placeholder?: string;
   required?: boolean;
 }
@@ -14,6 +17,9 @@ export function Autocomplete({
   value,
   options,
   onChange,
+  onBlur,
+  onSelect,
+  onEnter,
   placeholder,
   required,
 }: AutocompleteProps) {
@@ -72,6 +78,8 @@ export function Autocomplete({
             if (e.key === 'ArrowDown' && filtered.length > 0) {
               setOpen(true);
               setHighlight(0);
+            } else if (e.key === 'Enter') {
+              onEnter?.();
             }
             return;
           }
@@ -86,11 +94,15 @@ export function Autocomplete({
             onChange(filtered[highlight]);
             setOpen(false);
             setHighlight(-1);
+            onSelect?.(filtered[highlight]);
+          } else if (e.key === 'Enter') {
+            onEnter?.();
           } else if (e.key === 'Escape') {
             setOpen(false);
             setHighlight(-1);
           }
         }}
+        onBlur={onBlur}
       />
 
       {open && filtered.length > 0 && (
@@ -114,6 +126,7 @@ export function Autocomplete({
               onMouseDown={() => {
                 onChange(opt);
                 setOpen(false);
+                onSelect?.(opt);
               }}
               onMouseEnter={() => setHighlight(i)}
             >

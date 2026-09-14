@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/auth.store';
 import { EstadoBadge } from '@/components/ui/EstadoBadge';
 import { Pagination } from '@/components/ui/Pagination';
 import { Modal } from '@/components/ui/Modal';
+import { Autocomplete } from '@/components/ui/Autocomplete';
 import { EquipmentForm } from '@/components/equipments/EquipmentForm';
 import { EquipmentImportExport } from '@/components/equipments/EquipmentImportExport';
 import type { Equipment, EquipmentFilters, EquipmentPayload, Estado } from '@/types';
@@ -168,27 +169,38 @@ export function EquipmentsPage() {
             [
               ['name', 'Nome'],
               ['model', 'Modelo'],
-              ['serialNumber', 'Nº de série'],
               ['ipAddress', 'IP'],
               ['location', 'Localização'],
             ] as const
           ).map(([key, label]) => (
             <div key={key} className="flex-1 min-w-[140px]">
-              <label className="block text-xs font-medium text-surface-600 mb-1">
-                {label}
-              </label>
-              <input
-                className="input"
-                placeholder={`Filtrar por ${label.toLowerCase()}`}
+              <Autocomplete
+                label={label}
                 value={columnFilters[key]}
-                onChange={(e) =>
-                  setColumnFilters((cf) => ({ ...cf, [key]: e.target.value }))
-                }
-                onKeyDown={(e) => e.key === 'Enter' && applyColumnFilters()}
+                options={suggestions?.[key]}
+                onChange={(v) => setColumnFilters((cf) => ({ ...cf, [key]: v }))}
                 onBlur={applyColumnFilters}
+                onSelect={applyColumnFilters}
+                onEnter={applyColumnFilters}
+                placeholder={`Filtrar por ${label.toLowerCase()}`}
               />
             </div>
           ))}
+          <div className="flex-1 min-w-[140px]">
+            <label className="label">
+              Nº de série
+            </label>
+            <input
+              className="input"
+              placeholder="Filtrar por nº de série"
+              value={columnFilters.serialNumber}
+              onChange={(e) =>
+                setColumnFilters((cf) => ({ ...cf, serialNumber: e.target.value }))
+              }
+              onKeyDown={(e) => e.key === 'Enter' && applyColumnFilters()}
+              onBlur={applyColumnFilters}
+            />
+          </div>
           <div className="flex items-end gap-2">
             <button
               onClick={applyColumnFilters}
@@ -235,13 +247,13 @@ export function EquipmentsPage() {
             <tbody className="divide-y divide-surface-100">
               {data?.data.map((eq) => (
                 <tr key={eq.id} className="hover:bg-surface-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-surface-900">{eq.name}</td>
-                  <td className="px-4 py-3 text-surface-600">{eq.model}</td>
-                  <td className="px-4 py-3 text-surface-600">{eq.serialNumber}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-surface-600">
+                  <td className="px-4 py-3 font-medium text-surface-900 max-w-[180px] truncate" title={eq.name}>{eq.name}</td>
+                  <td className="px-4 py-3 text-surface-600 max-w-[160px] truncate" title={eq.model}>{eq.model}</td>
+                  <td className="px-4 py-3 text-surface-600 max-w-[120px] truncate" title={eq.serialNumber}>{eq.serialNumber}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-surface-600" title={eq.ipAddress ?? ''}>
                     {eq.ipAddress ?? '—'}
                   </td>
-                  <td className="px-4 py-3 text-surface-600">{eq.location}</td>
+                  <td className="px-4 py-3 text-surface-600 max-w-[180px] truncate" title={eq.location}>{eq.location}</td>
                   <td className="px-4 py-3">
                     <EstadoBadge status={eq.status} />
                   </td>
@@ -252,7 +264,7 @@ export function EquipmentsPage() {
                         className="btn-ghost p-1.5 text-surface-600"
                         title="Editar"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                             d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
@@ -263,7 +275,7 @@ export function EquipmentsPage() {
                           className="btn-ghost p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50"
                           title="Excluir"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                               d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
