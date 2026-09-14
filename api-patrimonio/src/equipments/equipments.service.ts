@@ -127,6 +127,38 @@ export class EquipmentsService implements OnModuleDestroy {
     };
   }
 
+  async getSuggestions(): Promise<Record<string, string[]>> {
+    const [nameRows, modelRows, locationRows, ipRows] = await Promise.all([
+      this.prisma.equipment.findMany({
+        distinct: ['name'],
+        select: { name: true },
+      }),
+      this.prisma.equipment.findMany({
+        distinct: ['model'],
+        select: { model: true },
+      }),
+      this.prisma.equipment.findMany({
+        distinct: ['location'],
+        select: { location: true },
+      }),
+      this.prisma.equipment.findMany({
+        distinct: ['ipAddress'],
+        select: { ipAddress: true },
+      }),
+    ]);
+
+    return {
+      name: nameRows.map((r) => r.name),
+      model: modelRows
+        .map((r) => r.model)
+        .filter((v): v is string => v !== null),
+      location: locationRows.map((r) => r.location),
+      ipAddress: ipRows
+        .map((r) => r.ipAddress)
+        .filter((v): v is string => v !== null),
+    };
+  }
+
   private buildWhereFromQuery(
     query: PaginationDto,
   ): Prisma.EquipmentWhereInput {

@@ -151,14 +151,17 @@ describe('Auth (e2e)', () => {
       .expect(400);
   });
 
-  it('❌ deve bloquear login de usuário inativo com 403', async () => {
+  it('❌ deve bloquear login de usuário inativo com 401 genérico', async () => {
     await request(app.getHttpServer()).post('/auth/signup').send(user);
     // usuário criado com isActive=false por padrão
 
-    await request(app.getHttpServer())
+    const response = await request(app.getHttpServer())
       .post('/auth/signin')
       .send({ email: user.email, password: user.password })
-      .expect(403);
+      .expect(401);
+
+    // Não deve revelar que a conta existe e está inativa (evita enumeração)
+    expect(response.body.message).toMatch(/credenciais inválidas/i);
   });
 
   it('✅ deve permitir login após ativação pelo admin', async () => {
@@ -178,15 +181,15 @@ describe('Auth (e2e)', () => {
     expect(response.body).toHaveProperty('access_token');
   });
 
-  it('✅ mensagem de erro deve indicar aguardando ativação', async () => {
+  it('✅ resposta genérica deve esconder status da conta', async () => {
     await request(app.getHttpServer()).post('/auth/signup').send(user);
 
     const response = await request(app.getHttpServer())
       .post('/auth/signin')
       .send({ email: user.email, password: user.password })
-      .expect(403);
+      .expect(401);
 
-    expect(response.body.message).toMatch(/aguardando ativação/i);
+    expect(response.body.message).toMatch(/credenciais inválidas/i);
   });
 
   // =========================

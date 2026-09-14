@@ -23,6 +23,14 @@ export function useEquipment(id: string) {
   });
 }
 
+export function useEquipmentSuggestions() {
+  return useQuery({
+    queryKey: ['equipments', 'suggestions'],
+    queryFn: () => equipmentService.suggestions(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useCreateEquipment() {
   const queryClient = useQueryClient();
   return useMutation({
