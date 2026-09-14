@@ -3,6 +3,7 @@ import type {
   Equipment,
   EquipmentFilters,
   EquipmentPayload,
+  EquipmentSuggestions,
   ImportPreviewResult,
   ImportResult,
   PaginatedResponse,
@@ -18,6 +19,11 @@ export const equipmentService = {
 
   async getById(id: string): Promise<Equipment> {
     const { data } = await api.get<Equipment>(`/equipments/${id}`);
+    return data;
+  },
+
+  async suggestions(): Promise<EquipmentSuggestions> {
+    const { data } = await api.get<EquipmentSuggestions>('/equipments/suggestions');
     return data;
   },
 
