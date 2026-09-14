@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
@@ -51,7 +52,10 @@ function mapConstraintToCode(constraint: string): string {
 }
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // ✅ confia no primeiro hop (nginx) para req.ip/req.ips refletirem o cliente real
+  app.set('trust proxy', 1);
 
   app.use(helmet());
   app.enableCors({

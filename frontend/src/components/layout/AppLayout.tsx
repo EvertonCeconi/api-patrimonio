@@ -41,7 +41,7 @@ export function AppLayout() {
 
   return (
     <div className="flex h-screen bg-surface-50">
-      <aside className="w-60 shrink-0 bg-white border-r border-surface-100 flex flex-col">
+      <aside className="w-44 shrink-0 bg-white border-r border-surface-100 flex flex-col">
         <div className="h-16 flex items-center px-5 border-b border-surface-100">
           <Link to="/equipments" className="font-semibold text-surface-900 tracking-tight hover:text-brand-600 transition-colors">
             <span className="text-brand-600">Equipa</span>mentos Itek
@@ -73,7 +73,7 @@ export function AppLayout() {
               {user?.email?.[0]?.toUpperCase() ?? 'U'}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-surface-900 truncate">{user?.email}</p>
+              <p className="text-xs font-medium text-surface-900 truncate" title={user?.email}>{user?.email}</p>
               <p className="text-xs text-surface-600">{user?.role}</p>
             </div>
           </div>
