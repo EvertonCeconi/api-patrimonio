@@ -4,6 +4,14 @@ Sistema de controle de patrimônio com API NestJS, frontend React e banco de dad
 
 ---
 
+## Demonstração
+
+![Demonstração do sistema](docs/demo.gif)
+
+<sub>Login, busca, cadastro de equipamento e painel administrativo — dados fictícios.</sub>
+
+---
+
 ## Estrutura do projeto
 
 ```
