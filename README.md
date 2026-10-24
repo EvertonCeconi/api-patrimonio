@@ -110,7 +110,7 @@ EOF
 
 cat > api-patrimonio/.env << 'EOF'
 DATABASE_URL="postgresql://patrimonio_admin:sua_senha_forte@postgres:5432/api_patrimonio?schema=public"
-JWT_SECRET=7f8a9b3c2d1e4f5a6b7c8d9e0f1a2b3c
+JWT_SECRET=troque_por_uma_chave_aleatoria
 NODE_ENV=production
 COOKIE_SECURE=false
 CORS_ORIGIN=http://SEU_IP:1010
