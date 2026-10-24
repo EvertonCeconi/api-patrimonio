@@ -2,6 +2,53 @@
 
 Sistema de controle de patrimônio com API NestJS, frontend React e banco de dados PostgreSQL, orquestrados via Docker.
 
+<p>
+  <img alt="NestJS" src="https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white">
+  <img alt="React" src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white">
+  <img alt="Prisma" src="https://img.shields.io/badge/Prisma-7-2D3748?logo=prisma&logoColor=white">
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-15-4169E1?logo=postgresql&logoColor=white">
+  <img alt="Docker" src="https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white">
+  <img alt="JWT" src="https://img.shields.io/badge/Auth-JWT-000000?logo=jsonwebtokens&logoColor=white">
+  <img alt="CI" src="https://github.com/EvertonCeconi/api-patrimonio/actions/workflows/ci.yml/badge.svg?branch=main">
+</p>
+
+---
+
+## Stack
+
+| Camada | Tecnologia | Versão | Papel no projeto |
+|---|---|---|---|
+| **Backend** | NestJS | 11 | API REST modular (`auth`, `admin`, `equipments`), guards e exception filters |
+| | Prisma | 7 | ORM, migrations e seed |
+| | PostgreSQL | 15 | Banco de dados relacional |
+| | Passport + JWT | 11 / 4 | Access token (15 min) + refresh token (7 dias, cookie httpOnly) com rotação |
+| | bcrypt | 6 | Hash de senhas (10 rounds) |
+| | class-validator / class-transformer | 0.14 / 0.5 | Validação dos DTOs (`whitelist` + `forbidNonWhitelisted`) |
+| | Helmet + Throttler | 8 / 6 | Cabeçalhos de segurança e rate limit (60 req/min; desligado em testes) |
+| | SheetJS (xlsx) | 0.18 | Importação e exportação CSV/XLSX |
+| **Frontend** | React | 19 | SPA com rotas protegidas por papel |
+| | Vite | 8 | Dev server e build de produção |
+| | TypeScript | 5.9 | Tipagem de ponta a ponta |
+| | React Router | 7 | Navegação e rotas privadas |
+| | TanStack Query | 5 | Cache e estado de servidor |
+| | Zustand | 5 | Estado de autenticação |
+| | Tailwind CSS | 3 | Estilização |
+| **Testes** | Jest + Supertest | 30 / 7 | Unitários (DTOs) e e2e (auth, admin, equipments) |
+| **Infra** | Docker + Docker Compose | multi-stage | Ambientes de dev e produção (API, frontend, Postgres e backup) |
+| | nginx | alpine | Serve o React e faz proxy reverso de `/api` para o NestJS |
+| | GitHub Actions | `ci.yml` | Lint, typecheck, testes e build das imagens |
+
+---
+
+## Funcionalidades
+
+- Autenticação JWT com refresh token rotativo em cookie `httpOnly`, single session e troca de senha que invalida sessões
+- CRUD de equipamentos com busca, filtros por coluna, paginação e ordenação
+- Importação de CSV/XLSX em duas fases (preview → confirmação) e exportação
+- Painel administrativo de usuários (criar, editar, ativar, promover e excluir)
+- Controle de acesso por papel (`ADMIN` / `USER`), com proteção do primeiro administrador
+
 ---
 
 ## Demonstração
@@ -273,14 +320,3 @@ O seed cria o usuário admin (idempotente — pode rodar várias vezes).
 docker build --target production -t api-patrimonio ./api-patrimonio
 docker build --target builder -t frontend-patrimonio ./frontend
 ```
-
----
-
-## Tecnologias
-
-| Camada | Tecnologia |
-|---|---|
-| Frontend | React, Vite, TypeScript |
-| Backend | NestJS, TypeScript, Prisma |
-| Banco de dados | PostgreSQL 15 |
-| Infra | Docker, Docker Compose, nginx |
