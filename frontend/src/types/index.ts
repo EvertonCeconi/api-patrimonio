@@ -59,6 +59,15 @@ export interface EquipmentPayload {
   status?: Estado;
 }
 
+export interface EquipmentSuggestions {
+  name: string[];
+  serialNumber: string[];
+  model: string[];
+  ipAddress: string[];
+  location: string[];
+  description: string[];
+}
+
 // ─── Pagination ───────────────────────────────────────────────────────────────
 
 export interface PaginationMeta {
